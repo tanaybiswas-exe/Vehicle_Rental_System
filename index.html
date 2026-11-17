@@ -153,9 +153,13 @@
         .recovery-card h4 { color: var(--danger); font-size: 0.95rem; margin-bottom: 6px; }
         .question-pill { background: var(--card); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin: 10px 0; }
 
-        /* Booking Modal */
+        /* Booking & Payment Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 999; backdrop-filter: blur(4px); }
         .modal-card { background: var(--card); padding: 2rem; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
+
+        .payment-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+        .pay-option { border: 1.5px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; font-weight: 600; font-size: 0.88rem; cursor: pointer; background: var(--bg-page); color: var(--text-main); }
+        .pay-option.selected { border-color: var(--primary); background: rgba(37,99,235,0.08); color: var(--primary); }
 
         @media (max-width: 920px) {
             .auth-shell { grid-template-columns: 1fr; }
@@ -169,27 +173,44 @@
 
 <div id="toast" class="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
 
-<!-- BOOKING MODAL -->
+<!-- BOOKING & PAYMENT MODAL -->
 <div id="bookingModal" class="modal-overlay hidden">
     <div class="modal-card">
-        <h3 id="modalVehTitle" style="margin-bottom: 0.5rem;">Book Vehicle</h3>
-        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">Select your rental start and end dates.</p>
+        <h3 id="modalVehTitle" style="margin-bottom: 0.3rem;">Book & Pay</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.1rem;">Select rental dates and secure payment gateway.</p>
         <form onsubmit="confirmBooking(event)">
             <input type="hidden" id="modalVehId">
-            <div class="field">
-                <label>Start Date</label>
-                <input type="date" id="bookStartDate" required onchange="calculateCost()">
+            <div class="input-grid" style="margin-bottom: 0;">
+                <div class="field">
+                    <label>Start Date</label>
+                    <input type="date" id="bookStartDate" required onchange="calculateCost()">
+                </div>
+                <div class="field">
+                    <label>End Date</label>
+                    <input type="date" id="bookEndDate" required onchange="calculateCost()">
+                </div>
             </div>
-            <div class="field">
-                <label>End Date</label>
-                <input type="date" id="bookEndDate" required onchange="calculateCost()">
+
+            <div style="background: var(--bg-page); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total Payable:</div>
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);" id="modalTotalCost">0 BDT</div>
+                </div>
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--success);" id="calcDaysCount">0 days</div>
             </div>
-            <div style="background: var(--bg-page); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.25rem;">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Estimated Total Cost:</div>
-                <div style="font-size: 1.35rem; font-weight: 800; color: var(--primary);" id="modalTotalCost">0 BDT</div>
+
+            <div class="field" style="margin-bottom: 0.8rem;">
+                <label>Select Payment Method</label>
+                <div class="payment-options">
+                    <div class="pay-option selected" onclick="selectPayment('bKash', this)">bKash 📱</div>
+                    <div class="pay-option" onclick="selectPayment('Nagad', this)">Nagad ⚡</div>
+                    <div class="pay-option" onclick="selectPayment('Credit Card', this)">Credit Card 💳</div>
+                    <div class="pay-option" onclick="selectPayment('Cash on Delivery', this)">Cash / COD 💵</div>
+                </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button type="submit" class="btn-primary">Confirm Booking</button>
+
+            <div style="display: flex; gap: 10px; margin-top: 1.2rem;">
+                <button type="submit" class="btn-primary">Pay & Confirm Booking</button>
                 <button type="button" class="btn-outline" onclick="closeBookingModal()">Cancel</button>
             </div>
         </form>
@@ -206,9 +227,9 @@
         <div class="showcase-hero">
             <div style="color: #93c5fd; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">⚡ C-Engine Native Platform</div>
             <h1>Smart Fleet Management & Bookings.</h1>
-            <p>Seamlessly browse, book, and manage vehicle rentals with permanent C file storage persistence and audit logging.</p>
+            <p>Seamlessly browse, book, and manage vehicle rentals with permanent C file storage persistence and simulated payments.</p>
         </div>
-        <div style="font-size: 0.8rem; color: #64748b;">DriveCore v3.0 &bull; Full-Stack Enterprise Edition</div>
+        <div style="font-size: 0.8rem; color: #64748b;">DriveCore v3.2 &bull; Enterprise Gateway Edition</div>
     </div>
 
     <div class="auth-panel">
@@ -302,8 +323,8 @@
             <div class="nav-label">Customer Portal</div>
             <nav class="nav-menu">
                 <button class="nav-btn active" onclick="showUserTab('uAvail', 'Available Fleet', 'Browse and book available vehicles', this)">🚗 Available Fleet</button>
-                <button class="nav-btn" onclick="showUserTab('uBookings', 'My Rentals', 'View active bookings & return vehicles', this)">📋 My Bookings</button>
-                <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'Manage profile, phone & security password', this)">👤 My Profile</button>
+                <button class="nav-btn" onclick="showUserTab('uBookings', 'My Rentals & Payments', 'View active bookings & payment status', this)">📋 My Bookings</button>
+                <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'Manage profile & security password', this)">👤 My Profile</button>
             </nav>
         </div>
         <button class="btn-primary btn-danger" style="padding: 10px;" onclick="logout()">Sign Out</button>
@@ -360,9 +381,9 @@
 
         <!-- TAB 2: My Bookings -->
         <div id="uBookings" class="surface-card hidden">
-            <h3>My Rental History & Active Bookings</h3>
+            <h3>My Rental History & Payments</h3>
             <table>
-                <thead><tr><th>Rental ID</th><th>Vehicle</th><th>Dates</th><th>Total Cost</th><th>Status</th><th>Action</th></tr></thead>
+                <thead><tr><th>Rental ID</th><th>Vehicle</th><th>Dates</th><th>Total Cost</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody id="userBookingsTable"></tbody>
             </table>
         </div>
@@ -479,7 +500,7 @@
                 <a href="/api/export-csv" class="btn-outline" style="text-decoration: none; font-size: 0.85rem;" download="rentals_report.csv">📥 Export Rentals CSV</a>
             </div>
             <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                All financials are calculated in real-time from active and completed bookings stored in <code>rentals.txt</code>. System activities and audit logs are recorded in <code>activity.log</code>.
+                All financials are calculated in real-time from paid bookings stored in <code>rentals.txt</code>. System activities and audit logs are recorded in <code>activity.log</code>.
             </p>
         </div>
 
@@ -549,6 +570,8 @@
     let allVehicles = [];
     let currentCategory = 'All';
     let selectedVehicleForBooking = null;
+    let selectedPaymentMethod = 'bKash';
+    let calculatedTotalValue = 0;
 
     function toggleTheme() {
         const body = document.body;
@@ -757,7 +780,7 @@
                 </div>
                 <div class="vc-footer">
                     <div class="vc-price"><strong>${v.price.toFixed(0)} BDT</strong> <span>/ day</span></div>
-                    <button class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.82rem;" onclick="openBookingModal('${v.id}', '${v.name}', ${v.price})">Book Now</button>
+                    <button class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.82rem;" onclick="openBookingModal('${v.id}', '${v.name}', ${v.price})">Book & Pay</button>
                 </div>
             </div>
         `).join('') || '<p style="color:var(--text-muted);">No available vehicles in this category.</p>';
@@ -780,16 +803,29 @@
 
     function openBookingModal(id, name, price) {
         selectedVehicleForBooking = { id, name, price };
+        selectedPaymentMethod = 'bKash';
+        document.querySelectorAll('.pay-option').forEach((el, idx) => {
+            if (idx === 0) el.classList.add('selected');
+            else el.classList.remove('selected');
+        });
+
         document.getElementById('modalVehTitle').textContent = `Book: ${name} (${id})`;
         document.getElementById('modalVehId').value = id;
         document.getElementById('bookStartDate').value = '';
         document.getElementById('bookEndDate').value = '';
         document.getElementById('modalTotalCost').textContent = '0 BDT';
+        document.getElementById('calcDaysCount').textContent = '0 days';
         document.getElementById('bookingModal').classList.remove('hidden');
     }
 
     function closeBookingModal() {
         document.getElementById('bookingModal').classList.add('hidden');
+    }
+
+    function selectPayment(method, el) {
+        selectedPaymentMethod = method;
+        document.querySelectorAll('.pay-option').forEach(p => p.classList.remove('selected'));
+        el.classList.add('selected');
     }
 
     function calculateCost() {
@@ -798,21 +834,32 @@
         if (start && end && end >= start) {
             const diffTime = Math.abs(end - start);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const total = diffDays * selectedVehicleForBooking.price;
-            document.getElementById('modalTotalCost').textContent = `${total.toLocaleString()} BDT (${diffDays} days)`;
+            calculatedTotalValue = diffDays * selectedVehicleForBooking.price;
+            document.getElementById('modalTotalCost').textContent = `${calculatedTotalValue.toLocaleString()} BDT`;
+            document.getElementById('calcDaysCount').textContent = `${diffDays} days`;
         } else {
+            calculatedTotalValue = 0;
             document.getElementById('modalTotalCost').textContent = '0 BDT';
+            document.getElementById('calcDaysCount').textContent = '0 days';
         }
     }
 
     async function confirmBooking(e) {
         e.preventDefault();
+        if (calculatedTotalValue <= 0) {
+            showToast('Please select valid rental dates.', 'error');
+            return;
+        }
+
         const res = await postAPI('/api/rentals/book', {
             email: currentUser.email,
             vehicle_id: selectedVehicleForBooking.id,
             start_date: document.getElementById('bookStartDate').value,
-            end_date: document.getElementById('bookEndDate').value
+            end_date: document.getElementById('bookEndDate').value,
+            payment_method: selectedPaymentMethod,
+            total_cost: calculatedTotalValue
         });
+
         showToast(res.message, res.status === 'success' ? 'success' : 'error');
         if (res.status === 'success') {
             closeBookingModal();
@@ -829,12 +876,13 @@
                 <td>${r.vehicle_name} (${r.vehicle_id})</td>
                 <td>${r.start_date} to ${r.end_date}</td>
                 <td><strong>${r.total_cost.toFixed(2)} BDT</strong></td>
+                <td><span style="font-weight:700; color:var(--primary);">${r.payment_method || 'bKash'}</span></td>
                 <td><span class="status-badge ${r.status === 'Active' ? 'badge-rented' : 'badge-avail'}">${r.status}</span></td>
                 <td>
                     ${r.status === 'Active' ? `<button class="btn-mini del" onclick="returnVehicle('${r.rental_id}', '${r.vehicle_id}')">Return</button>` : 'Completed'}
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="6">No rental history found.</td></tr>';
+        `).join('') || '<tr><td colspan="7">No rental history found.</td></tr>';
     }
 
     async function returnVehicle(rental_id, vehicle_id) {
