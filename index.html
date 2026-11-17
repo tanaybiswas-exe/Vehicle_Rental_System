@@ -3,455 +3,689 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DriveCore — Enterprise Vehicle Rental System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>DriveCore™ — Executive Mobility & Fleet OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
+            --bg-dark: #090d16;
+            --bg-surface: #111827;
+            --bg-page: #f4f6fb;
+            --card: #ffffff;
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
-            --primary-light: #eff6ff;
-            --dark: #0f172a;
-            --dark-secondary: #1e293b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #0f172a;
-            --muted: #64748b;
+            --accent: #6366f1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
             --border: #e2e8f0;
             --success: #10b981;
-            --success-bg: #d1fae5;
+            --success-soft: #ecfdf5;
             --danger: #ef4444;
-            --danger-bg: #fee2e2;
+            --danger-soft: #fef2f2;
             --warning: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 10px 30px -5px rgba(15, 23, 42, 0.07);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background: var(--bg-page);
+            color: var(--text-main);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
         }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            padding: 14px 20px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-            transform: translateX(150%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            max-width: 380px;
-        }
-        .toast.show { transform: translateX(0); }
-        .toast.success { background: #064e3b; color: #ecfdf5; border-left: 4px solid var(--success); }
-        .toast.error { background: #7f1d1d; color: #fef2f2; border-left: 4px solid var(--danger); }
 
         .hidden { display: none !important; }
 
-        /* ================= AUTH SPLIT SCREEN ================= */
-        .auth-wrapper {
+        /* ================= TOAST NOTIFICATION ================= */
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
             display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-140%);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 400px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #0f172a; color: #f8fafc; border: 1px solid #334155; }
+        .toast.success .toast-dot { background: var(--success); }
+        .toast.error { background: #450a0a; color: #fef2f2; border: 1px solid #991b1b; }
+        .toast.error .toast-dot { background: var(--danger); }
+        .toast-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ================= AUTHENTICATION PORTAL ================= */
+        .auth-shell {
             min-height: 100vh;
-            width: 100%;
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+            background: var(--bg-dark);
         }
 
-        .auth-banner {
-            flex: 1;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: white;
-            padding: 4rem;
+        /* Left Visual Showcase */
+        .auth-showcase {
+            position: relative;
+            padding: 3.5rem 4rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            position: relative;
+            color: white;
             overflow: hidden;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.28) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(99, 102, 241, 0.22) 0%, transparent 50%),
+                linear-gradient(160deg, #090d16 0%, #0f172a 100%);
         }
 
-        .auth-banner::before {
-            content: '';
+        .auth-grid-overlay {
             position: absolute;
-            width: 450px;
-            height: 450px;
-            background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);
-            top: -100px;
-            right: -100px;
-            border-radius: 50%;
+            inset: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
         }
 
-        .brand-logo {
+        .logo-lockup {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 2;
         }
 
-        .brand-icon {
-            background: var(--primary);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+        .logo-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             display: grid;
             place-items: center;
-            font-size: 1.2rem;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
         }
 
-        .banner-content h1 {
-            font-size: 2.6rem;
-            line-height: 1.2;
+        .logo-text {
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .logo-text span { color: #60a5fa; }
+
+        .showcase-hero {
+            position: relative;
+            z-index: 2;
+            max-width: 500px;
+        }
+
+        .eyebrow-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #93c5fd;
+            margin-bottom: 1.5rem;
+        }
+
+        .showcase-hero h1 {
+            font-size: 2.85rem;
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -0.03em;
             margin-bottom: 1.2rem;
+            background: linear-gradient(to right, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .showcase-hero p {
+            color: #94a3b8;
+            font-size: 1.02rem;
+            line-height: 1.65;
+            margin-bottom: 2.2rem;
+        }
+
+        .glass-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .metric-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            padding: 14px;
+            border-radius: 12px;
+        }
+
+        .metric-box strong {
+            display: block;
+            font-size: 1.15rem;
             font-weight: 700;
+            color: white;
+            margin-bottom: 3px;
         }
 
-        .banner-content p {
-            color: #cbd5e1;
-            font-size: 1.05rem;
-            line-height: 1.6;
-            max-width: 460px;
-            margin-bottom: 2rem;
+        .metric-box span {
+            font-size: 0.76rem;
+            color: #94a3b8;
         }
 
-        .feature-pills {
+        .showcase-footer {
+            position: relative;
+            z-index: 2;
+            font-size: 0.82rem;
+            color: #64748b;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            justify-content: space-between;
         }
 
-        .feature-pill {
+        /* Right Auth Form Panel */
+        .auth-panel {
+            background: #ffffff;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 0.92rem;
-            color: #e2e8f0;
-        }
-
-        .feature-pill span {
-            background: rgba(255, 255, 255, 0.12);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-
-        .auth-form-side {
-            flex: 1.1;
-            background: var(--card);
-            display: flex;
-            flex-direction: column;
             justify-content: center;
-            align-items: center;
             padding: 2.5rem;
+            border-top-left-radius: 28px;
+            border-bottom-left-radius: 28px;
+            box-shadow: var(--shadow-lg);
             overflow-y: auto;
         }
 
-        .auth-box {
+        .auth-container {
             width: 100%;
-            max-width: 460px;
+            max-width: 440px;
         }
 
-        .auth-switcher {
+        .segmented-control {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             background: #f1f5f9;
             padding: 5px;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 2rem;
+            border: 1px solid #e2e8f0;
         }
 
-        .auth-switcher button {
-            background: transparent;
-            color: var(--muted);
+        .segmented-control button {
             border: none;
-            padding: 10px;
-            border-radius: 8px;
+            background: transparent;
+            padding: 10px 8px;
+            border-radius: 9px;
+            font-size: 0.86rem;
             font-weight: 600;
-            font-size: 0.88rem;
+            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
 
-        .auth-switcher button.active {
-            background: var(--card);
-            color: var(--text);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        .segmented-control button.active {
+            background: white;
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
         }
 
-        .auth-header {
-            margin-bottom: 1.5rem;
+        .form-title {
+            margin-bottom: 1.6rem;
         }
 
-        .auth-header h2 {
-            font-size: 1.65rem;
-            font-weight: 700;
-            margin-bottom: 0.4rem;
+        .form-title h2 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.35rem;
         }
 
-        .auth-header p {
-            color: var(--muted);
+        .form-title p {
+            color: var(--text-muted);
             font-size: 0.92rem;
         }
 
-        /* Forms */
-        .form-row {
+        .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 14px;
         }
 
-        .form-group {
-            margin-bottom: 1.1rem;
-            position: relative;
+        .field {
+            margin-bottom: 1.15rem;
         }
 
-        label {
+        .field label {
             display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 700;
             color: #334155;
             margin-bottom: 6px;
+            letter-spacing: 0.01em;
+        }
+
+        .input-wrap {
+            position: relative;
         }
 
         input, select {
             width: 100%;
-            padding: 11px 14px;
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.94rem;
-            color: var(--text);
-            background: #ffffff;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            padding: 12px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.93rem;
+            color: var(--text-main);
+            background: #f8fafc;
+            transition: all 0.2s ease;
         }
 
         input:focus, select:focus {
             outline: none;
+            background: #ffffff;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
 
-        .pass-wrapper {
-            position: relative;
-        }
-
-        .toggle-pass {
+        .eye-btn {
             position: absolute;
             right: 12px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--muted);
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
+            padding: 4px 6px;
         }
 
-        .btn {
-            width: 100%;
-            padding: 12px 18px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
+        .eye-btn:hover { color: var(--primary); }
+
+        /* Password Strength Bar */
+        .strength-meter {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
         }
-
-        .btn:hover { background: var(--primary-hover); }
-        .btn:active { transform: scale(0.99); }
-        .btn-sm { width: auto; padding: 9px 16px; font-size: 0.88rem; }
-        .btn-danger { background: var(--danger); }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-dark { background: var(--dark); }
-        .btn-dark:hover { background: var(--dark-secondary); }
-
-        .password-hint {
-            font-size: 0.76rem;
-            color: var(--muted);
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+        .strength-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
             margin-top: 5px;
         }
 
-        /* Security Lock Box */
-        .lock-box {
-            margin-top: 1.5rem;
-            background: #fef2f2;
-            border: 1.5px solid #fecaca;
+        .btn-primary {
+            width: 100%;
+            padding: 13px 20px;
+            background: linear-gradient(135deg, var(--primary), #1d4ed8);
+            color: white;
+            border: none;
             border-radius: 10px;
-            padding: 1.25rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+            transition: all 0.2s ease;
         }
 
-        .lock-box h3 {
-            color: #991b1b;
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.32);
         }
 
-        .sec-q-display {
+        .btn-dark {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-outline {
             background: white;
-            padding: 10px 12px;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            color: var(--text-main);
+            border: 1.5px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
             font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 1rem;
-            border: 1px solid #fee2e2;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        /* ================= DASHBOARD LAYOUT ================= */
-        .dash-layout {
+        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+        /* Account Lockout Box */
+        .recovery-card {
+            margin-top: 1.5rem;
+            background: #fff1f2;
+            border: 1.5px solid #fecdd3;
+            border-radius: 12px;
+            padding: 1.3rem;
+        }
+
+        .recovery-card h4 {
+            color: #be123c;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .question-pill {
+            background: white;
+            border: 1px solid #ffe4e6;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            margin: 10px 0;
+        }
+
+        /* ================= DASHBOARD SHELL ================= */
+        .app-shell {
             display: flex;
             min-height: 100vh;
         }
 
         .sidebar {
-            width: 260px;
-            background: var(--dark);
+            width: 270px;
+            background: var(--bg-dark);
             color: white;
-            padding: 1.5rem;
+            padding: 1.75rem 1.25rem;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            border-right: 1px solid #1e293b;
         }
 
-        .sidebar-nav {
-            margin-top: 2rem;
+        .nav-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            font-weight: 700;
+            margin: 2rem 0 0.75rem 0.75rem;
+        }
+
+        .nav-menu {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
-        .nav-item {
-            background: transparent;
-            color: #94a3b8;
-            border: none;
-            padding: 11px 14px;
-            border-radius: 8px;
-            text-align: left;
-            font-size: 0.92rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
+        .nav-btn {
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.06);
-            color: white;
-        }
-
-        .nav-item.active {
-            background: var(--primary);
-            color: white;
+            gap: 12px;
+            width: 100%;
+            padding: 11px 14px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.9rem;
             font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
         }
 
-        .main-content {
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #f8fafc;
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--primary), #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .workspace {
             flex: 1;
-            padding: 2rem 2.5rem;
+            padding: 2rem 2.75rem;
             overflow-y: auto;
         }
 
-        .topbar {
+        .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border);
         }
 
-        .topbar h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
+        .header-bar h1 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
         }
 
-        .user-chip {
+        .header-bar p {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            margin-top: 2px;
+        }
+
+        .profile-badge {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             background: white;
-            padding: 6px 14px;
-            border-radius: 30px;
+            padding: 8px 16px;
+            border-radius: 999px;
             border: 1px solid var(--border);
-            font-size: 0.88rem;
-            font-weight: 600;
+            box-shadow: var(--shadow-sm);
         }
 
-        .avatar-circle {
-            width: 28px;
-            height: 28px;
+        .avatar {
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             color: white;
             display: grid;
             place-items: center;
-            font-size: 0.8rem;
-            font-weight: 700;
+            font-weight: 800;
+            font-size: 0.9rem;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        /* KPI Cards */
+        .kpi-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.2rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
             margin-bottom: 2rem;
         }
 
-        .stat-card {
+        .kpi-card {
             background: white;
-            padding: 1.25rem;
-            border-radius: 12px;
             border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            border-radius: 16px;
+            padding: 1.4rem;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .stat-card span {
-            font-size: 0.82rem;
-            color: var(--muted);
-            font-weight: 600;
+        .kpi-card small {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
-        .stat-card h3 {
-            font-size: 1.8rem;
+        .kpi-card h3 {
+            font-size: 1.9rem;
+            font-weight: 800;
             margin-top: 6px;
-            color: var(--dark);
         }
 
-        /* Content Card & Tables */
-        .panel-card {
-            background: white;
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
             border-radius: 12px;
-            border: 1px solid var(--border);
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            background: #eff6ff;
+            color: var(--primary);
+            display: grid;
+            place-items: center;
+            font-size: 1.3rem;
         }
 
-        .panel-card h3 {
+        /* Fleet Cards Grid */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-pill {
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .filter-pill.active {
+            background: var(--bg-dark);
+            color: white;
+            border-color: var(--bg-dark);
+        }
+
+        .fleet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .vehicle-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.4rem;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .vehicle-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .vc-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .vc-id {
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: #475569;
+        }
+
+        .vc-icon-box {
+            height: 90px;
+            background: linear-gradient(135deg, #f8fafc, #eff6ff);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-size: 2.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .vc-title {
             font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .vc-type {
+            font-size: 0.84rem;
+            color: var(--text-muted);
             margin-bottom: 1.2rem;
-            color: var(--dark);
+        }
+
+        .vc-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .vc-price strong {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .vc-price span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Data Surface & Tables */
+        .surface-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.6rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .surface-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
         }
 
         table {
@@ -461,435 +695,499 @@
 
         th {
             text-align: left;
-            padding: 12px 14px;
+            padding: 12px 16px;
             background: #f8fafc;
-            color: var(--muted);
-            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.05em;
             border-bottom: 1px solid var(--border);
         }
 
         td {
-            padding: 14px;
+            padding: 14px 16px;
             border-bottom: 1px solid var(--border);
             font-size: 0.92rem;
         }
 
-        tr:hover td {
-            background: #f8fafc;
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        .status-badge {
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .pill {
-            padding: 4px 10px;
-            border-radius: 20px;
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .badge-avail { background: var(--success-soft); color: #065f46; }
+        .badge-avail::before { background: var(--success); }
+
+        .badge-rented { background: var(--danger-soft); color: #991b1b; }
+        .badge-rented::before { background: var(--danger); }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-mini {
+            padding: 6px 10px;
+            border-radius: 6px;
             font-size: 0.78rem;
             font-weight: 600;
-            display: inline-block;
-        }
-
-        .pill-avail {
-            background: var(--success-bg);
-            color: #065f46;
-        }
-
-        .pill-rented {
-            background: var(--danger-bg);
-            color: #991b1b;
-        }
-
-        /* Profile Card */
-        .profile-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1rem;
-        }
-
-        .profile-field {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 8px;
             border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            transition: 0.15s;
         }
+        .btn-mini:hover { background: #f1f5f9; }
+        .btn-mini.del { color: var(--danger); border-color: #fecaca; }
+        .btn-mini.del:hover { background: var(--danger-soft); }
 
-        .profile-field small {
-            display: block;
-            color: var(--muted);
-            font-size: 0.78rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-        }
-
-        .profile-field strong {
-            font-size: 1.05rem;
-            color: var(--dark);
-        }
-
-        @media (max-width: 850px) {
-            .auth-banner { display: none; }
-            .dash-layout { flex-direction: column; }
+        @media (max-width: 920px) {
+            .auth-shell { grid-template-columns: 1fr; }
+            .auth-showcase { display: none; }
+            .auth-panel { border-radius: 0; }
+            .app-shell { flex-direction: column; }
             .sidebar { width: 100%; }
-            .form-row { grid-template-columns: 1fr; }
+            .input-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
 
-<!-- ==================== AUTHENTICATION VIEW ==================== -->
-<div id="authSection" class="auth-wrapper">
-    <!-- Left Branding Banner -->
-    <div class="auth-banner">
-        <div class="brand-logo">
-            <div class="brand-icon">🚘</div>
-            <span>DriveCore</span>
+<!-- ==================== 1. AUTHENTICATION PORTAL ==================== -->
+<div id="authSection" class="auth-shell">
+    <!-- Left Executive Branding -->
+    <div class="auth-showcase">
+        <div class="auth-grid-overlay"></div>
+
+        <div class="logo-lockup">
+            <div class="logo-mark">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+            </div>
+            <div class="logo-text">Drive<span>Core</span></div>
         </div>
 
-        <div class="banner-content">
-            <h1>Next-Gen Fleet & Vehicle Rental Platform.</h1>
-            <p>Seamless vehicle booking, real-time availability tracking, and instant fleet administration powered by a high-speed C backend engine.</p>
-            <div class="feature-pills">
-                <div class="feature-pill"><span>⚡ C Engine</span> Ultra-fast file-based persistence</div>
-                <div class="feature-pill"><span>🛡️ Protected</span> 5-attempt lockout & security recovery</div>
-                <div class="feature-pill"><span>📊 Admin Suite</span> Full inventory & user oversight</div>
+        <div class="showcase-hero">
+            <div class="eyebrow-badge">⚡ C-Engine Native HTTP Server</div>
+            <h1>Smart Fleet Management & Mobility OS.</h1>
+            <p>Experience enterprise-grade vehicle browsing, real-time inventory persistence, and multi-layered account security powered directly by C file systems.</p>
+
+            <div class="glass-metrics">
+                <div class="metric-box">
+                    <strong>100% C</strong>
+                    <span>Zero-Overhead Core</span>
+                </div>
+                <div class="metric-box">
+                    <strong>5-Attempt</strong>
+                    <span>Brute-Force Shield</span>
+                </div>
+                <div class="metric-box">
+                    <strong>Instant</strong>
+                    <span>Flat-File Sync</span>
+                </div>
             </div>
         </div>
 
-        <div style="font-size: 0.85rem; color: #94a3b8;">
-            &copy; 2026 DriveCore Vehicle Systems. Localhost C Server.
+        <div class="showcase-footer">
+            <span>DriveCore Mobility v2.0</span>
+            <span>users.txt &bull; vehicles.txt</span>
         </div>
     </div>
 
-    <!-- Right Form Area -->
-    <div class="auth-form-side">
-        <div class="auth-box">
-            <div class="auth-switcher">
-                <button class="active" onclick="switchAuthTab('userLogin', this)">User Login</button>
-                <button onclick="switchAuthTab('userReg', this)">Register</button>
-                <button onclick="switchAuthTab('adminLogin', this)">Admin</button>
+    <!-- Right Auth Forms -->
+    <div class="auth-panel">
+        <div class="auth-container">
+            <div class="segmented-control">
+                <button class="active" onclick="switchAuthTab('userLogin', this)">User Sign In</button>
+                <button onclick="switchAuthTab('userReg', this)">Create Account</button>
+                <button onclick="switchAuthTab('adminLogin', this)">Admin Portal</button>
             </div>
 
-            <!-- 1. USER LOGIN FORM -->
+            <!-- USER LOGIN -->
             <div id="userLogin">
-                <div class="auth-header">
-                    <h2>Welcome back</h2>
-                    <p>Enter your credentials to access your rental dashboard.</p>
+                <div class="form-title">
+                    <h2>Sign in to DriveCore</h2>
+                    <p>Access live vehicle availability and your personal profile.</p>
                 </div>
+
                 <form onsubmit="handleUserLogin(event)">
-                    <div class="form-group">
+                    <div class="field">
                         <label>Email Address</label>
-                        <input type="email" id="loginEmail" required placeholder="name@example.com">
+                        <input type="email" id="loginEmail" required placeholder="tanay@example.com">
                     </div>
-                    <div class="form-group">
+                    <div class="field">
                         <label>Password</label>
-                        <div class="pass-wrapper">
-                            <input type="password" id="loginPass" required placeholder="••••••••">
-                            <button type="button" class="toggle-pass" onclick="togglePassword('loginPass', this)">Show</button>
+                        <div class="input-wrap">
+                            <input type="password" id="loginPass" required placeholder="Enter your password">
+                            <button type="button" class="eye-btn" onclick="togglePass('loginPass', this)">SHOW</button>
                         </div>
                     </div>
-                    <button type="submit" class="btn">Sign In</button>
+                    <button type="submit" class="btn-primary">Sign In to Dashboard</button>
                 </form>
 
-                <!-- Security Question Recovery Box (After 5 Failed Attempts) -->
-                <div id="resetBox" class="lock-box hidden">
-                    <h3>🔒 Account Locked (5 Failed Attempts)</h3>
-                    <p style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 10px;">Answer your security question below to reset your password.</p>
-                    <div class="sec-q-display" id="secQuestionText"></div>
+                <!-- Security Lockout Recovery -->
+                <div id="resetBox" class="recovery-card hidden">
+                    <h4>🔒 Security Lockout Active (5 Failed Attempts)</h4>
+                    <p style="font-size: 0.83rem; color: #881337;">Verify your personal security question to reset your password and unlock access.</p>
+                    <div class="question-pill" id="secQuestionText"></div>
                     <form onsubmit="handlePasswordReset(event)">
-                        <div class="form-group">
-                            <label>Your Security Answer</label>
-                            <input type="text" id="resetAnswer" required placeholder="Enter exact answer">
+                        <div class="field">
+                            <label>Security Answer</label>
+                            <input type="text" id="resetAnswer" required placeholder="Enter your registered answer">
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
+                        <div class="input-grid">
+                            <div class="field">
                                 <label>New Password</label>
-                                <input type="password" id="resetNewPass" required placeholder="New strong password">
+                                <input type="password" id="resetNewPass" required placeholder="6+ chars, A-z, 0-9, @#$">
                             </div>
-                            <div class="form-group">
+                            <div class="field">
                                 <label>Confirm Password</label>
                                 <input type="password" id="resetConfirmPass" required placeholder="Repeat password">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-danger">Reset & Unlock Account</button>
+                        <button type="submit" class="btn-primary btn-danger">Reset Password & Unlock</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 2. USER REGISTRATION FORM -->
+            <!-- USER REGISTRATION -->
             <div id="userReg" class="hidden">
-                <div class="auth-header">
-                    <h2>Create an account</h2>
-                    <p>Register to browse available vehicles and manage rentals.</p>
+                <div class="form-title">
+                    <h2>Create your account</h2>
+                    <p>Register in seconds to start exploring our vehicle fleet.</p>
                 </div>
+
                 <form onsubmit="handleRegister(event)">
-                    <div class="form-row">
-                        <div class="form-group">
+                    <div class="input-grid">
+                        <div class="field">
                             <label>Full Name</label>
                             <input type="text" id="regName" required placeholder="Tanay Biswas">
                         </div>
-                        <div class="form-group">
+                        <div class="field">
                             <label>Phone Number</label>
-                            <input type="text" id="regPhone" required placeholder="017XXXXXXXX">
+                            <input type="text" id="regPhone" required placeholder="01700000000">
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="field">
                         <label>Email Address</label>
-                        <input type="email" id="regEmail" required placeholder="you@example.com">
+                        <input type="email" id="regEmail" required placeholder="you@domain.com">
                     </div>
-                    <div class="form-group">
+                    <div class="field">
                         <label>Password</label>
-                        <div class="pass-wrapper">
-                            <input type="password" id="regPass" required placeholder="Create a strong password">
-                            <button type="button" class="toggle-pass" onclick="togglePassword('regPass', this)">Show</button>
+                        <div class="input-wrap">
+                            <input type="password" id="regPass" required placeholder="Min 6 chars (Letter + Number + Symbol)" oninput="checkStrength(this.value)">
+                            <button type="button" class="eye-btn" onclick="togglePass('regPass', this)">SHOW</button>
                         </div>
-                        <div class="password-hint">Must be 6+ characters with at least 1 letter, 1 number & 1 special symbol.</div>
+                        <div class="strength-meter"><div id="strengthFill" class="strength-fill"></div></div>
+                        <div id="strengthText" class="strength-text">Requires 6+ chars, 1 letter, 1 number & 1 special symbol.</div>
                     </div>
-                    <div class="form-group">
+                    <div class="field">
                         <label>Personal Security Question</label>
-                        <input type="text" id="regSecQ" required placeholder="e.g., What is your childhood nickname?">
+                        <input type="text" id="regSecQ" required placeholder="e.g., What is your favorite city?">
                     </div>
-                    <div class="form-group">
+                    <div class="field">
                         <label>Security Answer</label>
-                        <input type="text" id="regSecA" required placeholder="Answer for password recovery">
+                        <input type="text" id="regSecA" required placeholder="Answer used if account locks">
                     </div>
-                    <button type="submit" class="btn">Create Account</button>
+                    <button type="submit" class="btn-primary">Complete Registration</button>
                 </form>
             </div>
 
-            <!-- 3. ADMIN LOGIN FORM -->
+            <!-- ADMIN LOGIN -->
             <div id="adminLogin" class="hidden">
-                <div class="auth-header">
-                    <h2>Admin Portal</h2>
-                    <p>Restricted access for authorized fleet administrators only.</p>
+                <div class="form-title">
+                    <h2>Administrator Access</h2>
+                    <p>Authorized personnel only. All changes persist to disk.</p>
                 </div>
+
                 <form onsubmit="handleAdminLogin(event)">
-                    <div class="form-group">
-                        <label>Administrator Email</label>
+                    <div class="field">
+                        <label>Admin Email</label>
                         <input type="email" id="adminEmail" required placeholder="admin@rental.com">
                     </div>
-                    <div class="form-group">
-                        <label>Administrator Password</label>
-                        <div class="pass-wrapper">
-                            <input type="password" id="adminPass" required placeholder="••••••••">
-                            <button type="button" class="toggle-pass" onclick="togglePassword('adminPass', this)">Show</button>
+                    <div class="field">
+                        <label>Admin Password</label>
+                        <div class="input-wrap">
+                            <input type="password" id="adminPass" required placeholder="Enter admin password">
+                            <button type="button" class="eye-btn" onclick="togglePass('adminPass', this)">SHOW</button>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-dark">Access Control Panel</button>
+                    <button type="submit" class="btn-primary btn-dark">Authenticate Admin</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ==================== USER DASHBOARD ==================== -->
-<div id="userDashboard" class="dash-layout hidden">
+<!-- ==================== 2. USER DASHBOARD ==================== -->
+<div id="userDashboard" class="app-shell hidden">
     <aside class="sidebar">
         <div>
-            <div class="brand-logo" style="font-size: 1.3rem;">
-                <div class="brand-icon" style="width: 34px; height: 34px;">🚘</div>
-                <span>DriveCore</span>
+            <div class="logo-lockup">
+                <div class="logo-mark" style="width: 36px; height: 36px;">🚘</div>
+                <div class="logo-text" style="font-size: 1.25rem;">Drive<span>Core</span></div>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" onclick="showUserTab('uAvail', 'Available Vehicles', this)">🚗 Available Vehicles</button>
-                <button class="nav-item" onclick="showUserTab('uSearch', 'Search Vehicle', this)">🔍 Search Vehicle</button>
-                <button class="nav-item" onclick="showUserTab('uProfile', 'My Profile', this)">👤 My Profile</button>
+
+            <div class="nav-label">Customer Portal</div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="showUserTab('uAvail', 'Available Fleet', 'Browse vehicles ready for immediate rental', this)">🚗 Available Vehicles</button>
+                <button class="nav-btn" onclick="showUserTab('uSearch', 'Search Vehicle', 'Lookup specific vehicle specifications by ID', this)">🔍 Search by ID</button>
+                <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'Manage your registered account credentials', this)">👤 My Profile</button>
             </nav>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+
+        <button class="btn-primary btn-danger" style="padding: 10px;" onclick="logout()">Sign Out</button>
     </aside>
 
-    <main class="main-content">
-        <div class="topbar">
-            <h2 id="userPageTitle">Available Vehicles</h2>
-            <div class="user-chip">
-                <div class="avatar-circle" id="userAvatar">U</div>
-                <span id="topUserName">User</span>
+    <main class="workspace">
+        <div class="header-bar">
+            <div>
+                <h1 id="userPageTitle">Available Fleet</h1>
+                <p id="userPageSub">Browse vehicles ready for immediate rental</p>
+            </div>
+            <div class="profile-badge">
+                <div class="avatar" id="userAvatar">U</div>
+                <div>
+                    <div style="font-size: 0.88rem; font-weight: 700;" id="topUserName">User</div>
+                    <div style="font-size: 0.72rem; color: var(--success); font-weight: 700;">● Verified Member</div>
+                </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span>Available Now</span>
-                <h3 id="statUserAvail">0</h3>
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div>
+                    <small>Available Vehicles</small>
+                    <h3 id="statUserAvail">0</h3>
+                </div>
+                <div class="kpi-icon">🚘</div>
             </div>
-            <div class="stat-card">
-                <span>Account Status</span>
-                <h3 style="color: var(--success); font-size: 1.3rem; margin-top: 10px;">Verified Member</h3>
+            <div class="kpi-card">
+                <div>
+                    <small>Starting Rate</small>
+                    <h3 id="statMinPrice">0 BDT</h3>
+                </div>
+                <div class="kpi-icon" style="background: #ecfdf5; color: var(--success);">💳</div>
             </div>
         </div>
 
-        <!-- View Available Vehicles -->
-        <div id="uAvail" class="panel-card">
-            <h3>Ready for Rental</h3>
-            <table>
-                <thead><tr><th>Vehicle ID</th><th>Vehicle Name</th><th>Category</th><th>Daily Rate</th><th>Status</th></tr></thead>
-                <tbody id="userAvailTable"></tbody>
-            </table>
+        <!-- TAB 1: Available Vehicles -->
+        <div id="uAvail">
+            <div class="toolbar">
+                <div class="filter-pills" id="categoryFilters">
+                    <button class="filter-pill active" onclick="filterFleet('All', this)">All Fleet</button>
+                    <button class="filter-pill" onclick="filterFleet('Sedan', this)">Sedans</button>
+                    <button class="filter-pill" onclick="filterFleet('SUV', this)">SUVs</button>
+                    <button class="filter-pill" onclick="filterFleet('Bike', this)">Bikes</button>
+                </div>
+                <button class="btn-outline" onclick="toggleUserViewMode()" id="viewToggleBtn">Switch to Table View</button>
+            </div>
+
+            <!-- Card Grid View -->
+            <div id="userCardsGrid" class="fleet-grid"></div>
+
+            <!-- Table View -->
+            <div id="userTableWrap" class="surface-card hidden">
+                <table>
+                    <thead><tr><th>Vehicle ID</th><th>Vehicle Name</th><th>Category</th><th>Daily Rate</th><th>Status</th></tr></thead>
+                    <tbody id="userAvailTable"></tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Search Vehicle -->
-        <div id="uSearch" class="panel-card hidden">
-            <h3>Lookup Vehicle by ID</h3>
-            <div style="display:flex; gap:10px; max-width: 450px;">
+        <!-- TAB 2: Search Vehicle -->
+        <div id="uSearch" class="surface-card hidden">
+            <h3>Find Vehicle by ID</h3>
+            <div style="display:flex; gap:10px; max-width: 460px;">
                 <input type="text" id="userSearchId" placeholder="Enter Vehicle ID (e.g., V101)">
-                <button class="btn btn-sm" onclick="searchVehicle('user')">Search</button>
+                <button class="btn-primary" style="width: auto; padding: 0 22px;" onclick="searchVehicle('user')">Search</button>
             </div>
             <div id="userSearchResult" style="margin-top: 1.5rem;"></div>
         </div>
 
-        <!-- My Profile -->
-        <div id="uProfile" class="panel-card hidden">
-            <h3>Personal Account Information</h3>
-            <div class="profile-grid">
-                <div class="profile-field">
-                    <small>Full Name</small>
-                    <strong id="profName"></strong>
+        <!-- TAB 3: My Profile -->
+        <div id="uProfile" class="surface-card hidden">
+            <h3>Registered Account Details</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Full Name</small>
+                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profName"></div>
                 </div>
-                <div class="profile-field">
-                    <small>Email Address</small>
-                    <strong id="profEmail"></strong>
+                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Email Address</small>
+                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profEmail"></div>
                 </div>
-                <div class="profile-field">
-                    <small>Phone Number</small>
-                    <strong id="profPhone"></strong>
+                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Phone Number</small>
+                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profPhone"></div>
                 </div>
             </div>
         </div>
     </main>
 </div>
 
-<!-- ==================== ADMIN DASHBOARD ==================== -->
-<div id="adminDashboard" class="dash-layout hidden">
+<!-- ==================== 3. ADMIN DASHBOARD ==================== -->
+<div id="adminDashboard" class="app-shell hidden">
     <aside class="sidebar">
         <div>
-            <div class="brand-logo" style="font-size: 1.3rem;">
-                <div class="brand-icon" style="width: 34px; height: 34px; background: var(--warning); color: var(--dark);">⚡</div>
-                <span>Admin Panel</span>
+            <div class="logo-lockup">
+                <div class="logo-mark" style="width: 36px; height: 36px; background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                <div class="logo-text" style="font-size: 1.25rem;">Fleet<span>Admin</span></div>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" onclick="showAdminTab('aVehicles', 'Fleet Inventory', this)">🚘 All Vehicles</button>
-                <button class="nav-item" onclick="showAdminTab('aUsers', 'Registered Users', this)">👥 Registered Users</button>
-                <button class="nav-item" onclick="showAdminTab('aAdd', 'Add New Vehicle', this)">➕ Add Vehicle</button>
-                <button class="nav-item" onclick="showAdminTab('aUpdate', 'Update Vehicle', this)">✏️ Update Vehicle</button>
-                <button class="nav-item" onclick="showAdminTab('aDelete', 'Delete Vehicle', this)">🗑️ Delete Vehicle</button>
-                <button class="nav-item" onclick="showAdminTab('aSearch', 'Search Vehicle', this)">🔍 Search Vehicle</button>
+
+            <div class="nav-label">Management Console</div>
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="showAdminTab('aVehicles', 'Fleet Inventory', 'Manage all vehicles stored in vehicles.txt', this)">🚘 All Vehicles</button>
+                <button class="nav-btn" onclick="showAdminTab('aUsers', 'Registered Users', 'Directory of customer accounts in users.txt', this)">👥 Registered Users</button>
+                <button class="nav-btn" onclick="showAdminTab('aAdd', 'Add New Vehicle', 'Register a new vehicle into permanent storage', this)">➕ Add Vehicle</button>
+                <button class="nav-btn" onclick="showAdminTab('aUpdate', 'Update Vehicle', 'Modify vehicle pricing, details, or availability', this)">✏️ Update Vehicle</button>
+                <button class="nav-btn" onclick="showAdminTab('aDelete', 'Delete Vehicle', 'Permanently remove a vehicle record', this)">🗑️ Delete Vehicle</button>
+                <button class="nav-btn" onclick="showAdminTab('aSearch', 'Search Vehicle', 'Lookup any vehicle record by ID', this)">🔍 Search Vehicle</button>
             </nav>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+
+        <button class="btn-primary btn-danger" style="padding: 10px;" onclick="logout()">Exit Admin</button>
     </aside>
 
-    <main class="main-content">
-        <div class="topbar">
-            <h2 id="adminPageTitle">Fleet Inventory</h2>
-            <div class="user-chip">
-                <div class="avatar-circle" style="background: var(--dark);">A</div>
-                <span>System Admin</span>
+    <main class="workspace">
+        <div class="header-bar">
+            <div>
+                <h1 id="adminPageTitle">Fleet Inventory</h1>
+                <p id="adminPageSub">Manage all vehicles stored in vehicles.txt</p>
+            </div>
+            <div class="profile-badge">
+                <div class="avatar" style="background: #0f172a;">A</div>
+                <div>
+                    <div style="font-size: 0.88rem; font-weight: 700;">Administrator</div>
+                    <div style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">● Root Access</div>
+                </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span>Total Vehicles</span>
-                <h3 id="statTotalVehicles">0</h3>
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div>
+                    <small>Total Fleet</small>
+                    <h3 id="statTotalVehicles">0</h3>
+                </div>
+                <div class="kpi-icon">📊</div>
             </div>
-            <div class="stat-card">
-                <span>Available Vehicles</span>
-                <h3 id="statAvailVehicles" style="color: var(--success);">0</h3>
+            <div class="kpi-card">
+                <div>
+                    <small>Available Now</small>
+                    <h3 id="statAvailVehicles" style="color: var(--success);">0</h3>
+                </div>
+                <div class="kpi-icon" style="background: #ecfdf5; color: var(--success);">✅</div>
             </div>
-            <div class="stat-card">
-                <span>Registered Users</span>
-                <h3 id="statTotalUsers" style="color: var(--primary);">0</h3>
+            <div class="kpi-card">
+                <div>
+                    <small>Registered Users</small>
+                    <h3 id="statTotalUsers" style="color: var(--accent);">0</h3>
+                </div>
+                <div class="kpi-icon" style="background: #eef2ff; color: var(--accent);">👥</div>
             </div>
         </div>
 
-        <!-- View All Vehicles -->
-        <div id="aVehicles" class="panel-card">
-            <h3>Complete Vehicle Database (vehicles.txt)</h3>
+        <!-- TAB 1: All Vehicles -->
+        <div id="aVehicles" class="surface-card">
+            <h3>Complete Vehicle Database</h3>
             <table>
-                <thead><tr><th>ID</th><th>Vehicle Name</th><th>Type</th><th>Price / Day</th><th>Status</th></tr></thead>
+                <thead><tr><th>ID</th><th>Vehicle Name</th><th>Category</th><th>Daily Rate</th><th>Status</th><th>Quick Actions</th></tr></thead>
                 <tbody id="adminVehiclesTable"></tbody>
             </table>
         </div>
 
-        <!-- View All Users -->
-        <div id="aUsers" class="panel-card hidden">
-            <h3>Registered Users Directory (users.txt)</h3>
+        <!-- TAB 2: All Registered Users -->
+        <div id="aUsers" class="surface-card hidden">
+            <h3>Registered Customer Directory</h3>
             <table>
                 <thead><tr><th>Full Name</th><th>Email Address</th><th>Phone Number</th></tr></thead>
                 <tbody id="adminUsersTable"></tbody>
             </table>
         </div>
 
-        <!-- Add Vehicle -->
-        <div id="aAdd" class="panel-card hidden">
-            <h3>Register New Vehicle</h3>
-            <form onsubmit="handleAddVehicle(event)" style="max-width: 650px;">
-                <div class="form-row">
-                    <div class="form-group"><label>Vehicle ID</label><input type="text" id="addId" required placeholder="e.g., V105"></div>
-                    <div class="form-group"><label>Vehicle Name</label><input type="text" id="addName" required placeholder="e.g., Toyota Premio"></div>
+        <!-- TAB 3: Add Vehicle -->
+        <div id="aAdd" class="surface-card hidden">
+            <h3>Add New Vehicle to Fleet</h3>
+            <form onsubmit="handleAddVehicle(event)" style="max-width: 640px;">
+                <div class="input-grid">
+                    <div class="field"><label>Vehicle ID</label><input type="text" id="addId" required placeholder="e.g., V105"></div>
+                    <div class="field"><label>Vehicle Name</label><input type="text" id="addName" required placeholder="e.g., Toyota Allion"></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Vehicle Type</label><input type="text" id="addType" required placeholder="Sedan, SUV, Bike"></div>
-                    <div class="form-group"><label>Rental Price Per Day (BDT)</label><input type="number" step="0.01" id="addPrice" required placeholder="4000"></div>
+                <div class="input-grid">
+                    <div class="field"><label>Vehicle Type</label><input type="text" id="addType" required placeholder="Sedan, SUV, Bike"></div>
+                    <div class="field"><label>Rental Price Per Day (BDT)</label><input type="number" step="0.01" id="addPrice" required placeholder="4500"></div>
                 </div>
-                <div class="form-group">
+                <div class="field">
                     <label>Availability Status</label>
                     <select id="addStatus">
                         <option value="Available">Available</option>
                         <option value="Rented">Rented</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-sm">Add to Fleet</button>
+                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 26px;">Save Vehicle</button>
             </form>
         </div>
 
-        <!-- Update Vehicle -->
-        <div id="aUpdate" class="panel-card hidden">
-            <h3>Update Existing Vehicle</h3>
-            <form onsubmit="handleUpdateVehicle(event)" style="max-width: 650px;">
-                <div class="form-group">
+        <!-- TAB 4: Update Vehicle -->
+        <div id="aUpdate" class="surface-card hidden">
+            <h3>Update Vehicle Information</h3>
+            <form onsubmit="handleUpdateVehicle(event)" style="max-width: 640px;">
+                <div class="field">
                     <label>Target Vehicle ID (Required)</label>
-                    <input type="text" id="updId" required placeholder="Enter existing Vehicle ID (e.g., V101)">
+                    <input type="text" id="updId" required placeholder="e.g., V101">
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>New Name (Optional)</label><input type="text" id="updName" placeholder="Leave blank to keep current"></div>
-                    <div class="form-group"><label>New Type (Optional)</label><input type="text" id="updType" placeholder="Leave blank to keep current"></div>
+                <div class="input-grid">
+                    <div class="field"><label>New Name (Leave blank to keep)</label><input type="text" id="updName"></div>
+                    <div class="field"><label>New Type (Leave blank to keep)</label><input type="text" id="updType"></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group"><label>New Price/Day (Optional)</label><input type="number" step="0.01" id="updPrice" placeholder="Leave blank to keep current"></div>
-                    <div class="form-group">
+                <div class="input-grid">
+                    <div class="field"><label>New Price/Day (Leave blank to keep)</label><input type="number" step="0.01" id="updPrice"></div>
+                    <div class="field">
                         <label>Availability Status</label>
                         <select id="updStatus">
-                            <option value="">-- Keep Existing Status --</option>
+                            <option value="">-- Keep Existing --</option>
                             <option value="Available">Available</option>
                             <option value="Rented">Rented</option>
                         </select>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-sm">Save Changes</button>
+                <button type="submit" class="btn-primary" style="width: auto; padding: 12px 26px;">Update Vehicle</button>
             </form>
         </div>
 
-        <!-- Delete Vehicle -->
-        <div id="aDelete" class="panel-card hidden">
-            <h3>Remove Vehicle from Fleet</h3>
-            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Enter the Vehicle ID to permanently remove it from <code>vehicles.txt</code>.</p>
-            <div style="display:flex; gap:10px; max-width: 450px;">
+        <!-- TAB 5: Delete Vehicle -->
+        <div id="aDelete" class="surface-card hidden">
+            <h3>Delete Vehicle Record</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Permanently delete a vehicle record from <code>vehicles.txt</code>.</p>
+            <div style="display:flex; gap:10px; max-width: 460px;">
                 <input type="text" id="delId" placeholder="Enter Vehicle ID (e.g., V104)">
-                <button class="btn btn-danger btn-sm" onclick="handleDeleteVehicle()">Delete Vehicle</button>
+                <button class="btn-primary btn-danger" style="width: auto; padding: 0 22px;" onclick="handleDeleteVehicle()">Delete</button>
             </div>
         </div>
 
-        <!-- Search Vehicle -->
-        <div id="aSearch" class="panel-card hidden">
+        <!-- TAB 6: Search Vehicle -->
+        <div id="aSearch" class="surface-card hidden">
             <h3>Search Fleet by ID</h3>
-            <div style="display:flex; gap:10px; max-width: 450px;">
+            <div style="display:flex; gap:10px; max-width: 460px;">
                 <input type="text" id="adminSearchId" placeholder="Enter Vehicle ID">
-                <button class="btn btn-sm" onclick="searchVehicle('admin')">Search</button>
+                <button class="btn-primary" style="width: auto; padding: 0 22px;" onclick="searchVehicle('admin')">Search</button>
             </div>
             <div id="adminSearchResult" style="margin-top: 1.5rem;"></div>
         </div>
@@ -899,23 +1197,44 @@
 <script>
     let currentUser = null;
     let allVehicles = [];
+    let currentCategory = 'All';
+    let isTableView = false;
 
     function showToast(msg, type = 'success') {
         const toast = document.getElementById('toast');
-        toast.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+        document.getElementById('toastMsg').textContent = msg;
         toast.className = `toast ${type} show`;
-        setTimeout(() => { toast.classList.remove('show'); }, 4500);
+        setTimeout(() => toast.classList.remove('show'), 4200);
     }
 
-    function togglePassword(inputId, btn) {
-        const input = document.getElementById(inputId);
-        if (input.type === 'password') {
-            input.type = 'text';
-            btn.textContent = 'Hide';
-        } else {
-            input.type = 'password';
-            btn.textContent = 'Show';
-        }
+    function togglePass(id, btn) {
+        const el = document.getElementById(id);
+        el.type = el.type === 'password' ? 'text' : 'password';
+        btn.textContent = el.type === 'password' ? 'SHOW' : 'HIDE';
+    }
+
+    function checkStrength(val) {
+        const fill = document.getElementById('strengthFill');
+        const txt = document.getElementById('strengthText');
+        let score = 0;
+        if (val.length >= 6) score++;
+        if (/[a-zA-Z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+        const widths = ['0%', '25%', '50%', '75%', '100%'];
+        const colors = ['#e2e8f0', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+        const labels = [
+            'Requires 6+ chars, 1 letter, 1 number & 1 special symbol.',
+            'Weak — keep adding required character types.',
+            'Fair — almost meets security policy.',
+            'Good — add one more requirement.',
+            'Strong password — meets all security rules!'
+        ];
+        fill.style.width = widths[score];
+        fill.style.background = colors[score];
+        txt.textContent = labels[score];
+        txt.style.color = score === 4 ? '#059669' : '#64748b';
     }
 
     function encodeForm(data) {
@@ -934,7 +1253,7 @@
     function switchAuthTab(tabId, btn) {
         ['userLogin', 'userReg', 'adminLogin'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(tabId).classList.remove('hidden');
-        document.querySelectorAll('.auth-switcher button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.segmented-control button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
     }
 
@@ -951,15 +1270,15 @@
         showToast(res.message, res.status === 'success' ? 'success' : 'error');
         if (res.status === 'success') {
             e.target.reset();
-            switchAuthTab('userLogin', document.querySelectorAll('.auth-switcher button')[0]);
+            checkStrength('');
+            switchAuthTab('userLogin', document.querySelectorAll('.segmented-control button')[0]);
         }
     }
 
     async function handleUserLogin(e) {
         e.preventDefault();
-        const email = document.getElementById('loginEmail').value;
         const res = await postAPI('/api/login', {
-            email: email,
+            email: document.getElementById('loginEmail').value,
             password: document.getElementById('loginPass').value
         });
 
@@ -1009,7 +1328,7 @@
         if (res.status === 'success') {
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
-            showToast('Admin authenticated.', 'success');
+            showToast('Admin session active.', 'success');
             loadUsers();
             loadVehicles();
         } else {
@@ -1022,26 +1341,83 @@
         document.getElementById('userDashboard').classList.add('hidden');
         document.getElementById('adminDashboard').classList.add('hidden');
         document.getElementById('authSection').classList.remove('hidden');
-        showToast('Logged out successfully.', 'success');
+        showToast('Signed out safely.', 'success');
     }
 
-    function showUserTab(tabId, title, btn) {
+    function showUserTab(tabId, title, sub, btn) {
         ['uAvail', 'uSearch', 'uProfile'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(tabId).classList.remove('hidden');
         document.getElementById('userPageTitle').textContent = title;
-        document.querySelectorAll('#userDashboard .nav-item').forEach(b => b.classList.remove('active'));
+        document.getElementById('userPageSub').textContent = sub;
+        document.querySelectorAll('#userDashboard .nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (tabId === 'uAvail') loadVehicles();
     }
 
-    function showAdminTab(tabId, title, btn) {
+    function showAdminTab(tabId, title, sub, btn) {
         ['aVehicles', 'aUsers', 'aAdd', 'aUpdate', 'aDelete', 'aSearch'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(tabId).classList.remove('hidden');
         document.getElementById('adminPageTitle').textContent = title;
-        document.querySelectorAll('#adminDashboard .nav-item').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        document.getElementById('adminPageSub').textContent = sub;
+        document.querySelectorAll('#adminDashboard .nav-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
         if (tabId === 'aUsers') loadUsers();
         if (tabId === 'aVehicles') loadVehicles();
+    }
+
+    function getVehicleEmoji(type) {
+        const t = type.toLowerCase();
+        if (t.includes('bike') || t.includes('motor')) return '🏍️';
+        if (t.includes('suv') || t.includes('jeep')) return '🚙';
+        return '🚘';
+    }
+
+    function filterFleet(cat, btn) {
+        currentCategory = cat;
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        renderUserVehicles();
+    }
+
+    function toggleUserViewMode() {
+        isTableView = !isTableView;
+        document.getElementById('userCardsGrid').classList.toggle('hidden', isTableView);
+        document.getElementById('userTableWrap').classList.toggle('hidden', !isTableView);
+        document.getElementById('viewToggleBtn').textContent = isTableView ? 'Switch to Card View' : 'Switch to Table View';
+    }
+
+    function renderUserVehicles() {
+        const availList = allVehicles.filter(v => v.status === 'Available' &&
+            (currentCategory === 'All' || v.type.toLowerCase() === currentCategory.toLowerCase()));
+
+        // Cards View
+        document.getElementById('userCardsGrid').innerHTML = availList.map(v => `
+            <div class="vehicle-card">
+                <div>
+                    <div class="vc-top">
+                        <span class="vc-id">${v.id}</span>
+                        <span class="status-badge badge-avail">${v.status}</span>
+                    </div>
+                    <div class="vc-icon-box">${getVehicleEmoji(v.type)}</div>
+                    <div class="vc-title">${v.name}</div>
+                    <div class="vc-type">${v.type} Category</div>
+                </div>
+                <div class="vc-footer">
+                    <div class="vc-price"><strong>${v.price.toFixed(0)} BDT</strong> <span>/ day</span></div>
+                </div>
+            </div>
+        `).join('') || '<p style="color:var(--text-muted);">No available vehicles match this category.</p>';
+
+        // Table View
+        document.getElementById('userAvailTable').innerHTML = availList.map(v => `
+            <tr>
+                <td><strong>${v.id}</strong></td>
+                <td>${v.name}</td>
+                <td>${v.type}</td>
+                <td><strong>${v.price.toFixed(2)} BDT</strong></td>
+                <td><span class="status-badge badge-avail">${v.status}</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="5">No available vehicles found.</td></tr>';
     }
 
     async function loadVehicles() {
@@ -1054,25 +1430,46 @@
         document.getElementById('statTotalVehicles').textContent = allVehicles.length;
         document.getElementById('statAvailVehicles').textContent = availList.length;
 
-        // User Table
-        document.getElementById('userAvailTable').innerHTML = availList
-            .map(v => `<tr>
-                <td><strong>${v.id}</strong></td>
-                <td>${v.name}</td>
-                <td>${v.type}</td>
-                <td><strong>${v.price.toFixed(2)} BDT</strong></td>
-                <td><span class="pill pill-avail">${v.status}</span></td>
-            </tr>`).join('') || '<tr><td colspan="5">No available vehicles right now.</td></tr>';
+        if (availList.length > 0) {
+            const minP = Math.min(...availList.map(v => v.price));
+            document.getElementById('statMinPrice').textContent = `${minP.toFixed(0)} BDT`;
+        }
 
-        // Admin Table
-        document.getElementById('adminVehiclesTable').innerHTML = allVehicles
-            .map(v => `<tr>
+        renderUserVehicles();
+
+        // Admin Table with Quick Actions
+        document.getElementById('adminVehiclesTable').innerHTML = allVehicles.map(v => `
+            <tr>
                 <td><strong>${v.id}</strong></td>
                 <td>${v.name}</td>
                 <td>${v.type}</td>
                 <td><strong>${v.price.toFixed(2)} BDT</strong></td>
-                <td><span class="pill ${v.status === 'Available' ? 'pill-avail' : 'pill-rented'}">${v.status}</span></td>
-            </tr>`).join('') || '<tr><td colspan="5">No vehicles found.</td></tr>';
+                <td><span class="status-badge ${v.status === 'Available' ? 'badge-avail' : 'badge-rented'}">${v.status}</span></td>
+                <td>
+                    <div class="action-group">
+                        <button class="btn-mini" onclick="quickEdit('${v.id}', '${v.name}', '${v.type}', ${v.price}, '${v.status}')">Edit</button>
+                        <button class="btn-mini del" onclick="quickDelete('${v.id}')">Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="6">No vehicles in database.</td></tr>';
+    }
+
+    function quickEdit(id, name, type, price, status) {
+        document.getElementById('updId').value = id;
+        document.getElementById('updName').value = name;
+        document.getElementById('updType').value = type;
+        document.getElementById('updPrice').value = price;
+        document.getElementById('updStatus').value = status;
+        const updateBtn = document.querySelectorAll('#adminDashboard .nav-btn')[3];
+        showAdminTab('aUpdate', 'Update Vehicle', `Editing record ${id}`, updateBtn);
+    }
+
+    async function quickDelete(id) {
+        if (!confirm(`Permanently delete vehicle ${id}?`)) return;
+        const res = await postAPI('/api/vehicles/delete', { id });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') loadVehicles();
     }
 
     async function loadUsers() {
@@ -1092,15 +1489,23 @@
         const v = allVehicles.find(item => item.id.toLowerCase() === id.toLowerCase());
 
         if (v) {
-            box.innerHTML = `<div class="profile-grid" style="max-width: 650px;">
-                <div class="profile-field"><small>Vehicle ID</small><strong>${v.id}</strong></div>
-                <div class="profile-field"><small>Vehicle Name</small><strong>${v.name}</strong></div>
-                <div class="profile-field"><small>Category</small><strong>${v.type}</strong></div>
-                <div class="profile-field"><small>Daily Rate</small><strong>${v.price.toFixed(2)} BDT</strong></div>
-                <div class="profile-field"><small>Status</small><span class="pill ${v.status === 'Available' ? 'pill-avail' : 'pill-rented'}">${v.status}</span></div>
-            </div>`;
+            box.innerHTML = `
+                <div class="vehicle-card" style="max-width: 360px;">
+                    <div>
+                        <div class="vc-top">
+                            <span class="vc-id">${v.id}</span>
+                            <span class="status-badge ${v.status === 'Available' ? 'badge-avail' : 'badge-rented'}">${v.status}</span>
+                        </div>
+                        <div class="vc-icon-box">${getVehicleEmoji(v.type)}</div>
+                        <div class="vc-title">${v.name}</div>
+                        <div class="vc-type">${v.type} Category</div>
+                    </div>
+                    <div class="vc-footer">
+                        <div class="vc-price"><strong>${v.price.toFixed(2)} BDT</strong> <span>/ day</span></div>
+                    </div>
+                </div>`;
         } else {
-            box.innerHTML = `<p style="color:var(--danger); font-weight:600;">No vehicle found with ID "${id}".</p>`;
+            box.innerHTML = `<p style="color:var(--danger); font-weight:700;">Vehicle ID "${id}" not found.</p>`;
         }
     }
 
@@ -1139,7 +1544,7 @@
     async function handleDeleteVehicle() {
         const id = document.getElementById('delId').value.trim();
         if (!id) return showToast('Please enter a Vehicle ID.', 'error');
-        if (!confirm(`Are you sure you want to permanently delete vehicle "${id}"?`)) return;
+        if (!confirm(`Permanently delete vehicle "${id}"?`)) return;
 
         const res = await postAPI('/api/vehicles/delete', { id });
         showToast(res.message, res.status === 'success' ? 'success' : 'error');
