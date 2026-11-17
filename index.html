@@ -302,6 +302,12 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
 
+        input:disabled {
+            background: #e2e8f0;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
         .eye-btn {
             position: absolute;
             right: 12px;
@@ -454,7 +460,6 @@
         }
 
         .nav-btn.active {
-            background: linear-gradient(135deg, var(--primary), var(--xdish = #1d4ed8));
             background: linear-gradient(135deg, var(--primary), #1d4ed8);
             color: white;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
@@ -669,11 +674,21 @@
             border-radius: 16px;
             padding: 1.6rem;
             box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5rem;
         }
 
         .surface-card h3 {
             font-size: 1.15rem;
             font-weight: 700;
+            margin-bottom: 1.25rem;
+        }
+
+        .security-confirm-box {
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 1.15rem;
+            margin-top: 0.5rem;
             margin-bottom: 1.25rem;
         }
 
@@ -805,7 +820,7 @@
                 <button onclick="switchAuthTab('userReg', this)">Create Account</button>
             </div>
 
-            <!-- LOGIN FORM (Handles both User and Admin based on credentials) -->
+            <!-- LOGIN FORM -->
             <div id="userLogin">
                 <div class="form-title">
                     <h2>Sign in to DriveCore</h2>
@@ -815,7 +830,7 @@
                 <form onsubmit="handleUserLogin(event)">
                     <div class="field">
                         <label>Email Address</label>
-                        <input type="email" id="loginEmail" required placeholder="tanay@example.com or admin@rental.com">
+                        <input type="email" id="loginEmail" required placeholder="tanay@example.com">
                     </div>
                     <div class="field">
                         <label>Password</label>
@@ -910,7 +925,7 @@
             <nav class="nav-menu">
                 <button class="nav-btn active" onclick="showUserTab('uAvail', 'Available Fleet', 'Browse vehicles ready for immediate rental', this)">🚗 Available Vehicles</button>
                 <button class="nav-btn" onclick="showUserTab('uSearch', 'Search Vehicle', 'Lookup specific vehicle specifications by ID', this)">🔍 Search by ID</button>
-                <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'Manage your registered account credentials', this)">👤 My Profile</button>
+                <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'View and update your personal account credentials', this)">👤 My Profile</button>
             </nav>
         </div>
 
@@ -981,22 +996,69 @@
             <div id="userSearchResult" style="margin-top: 1.5rem;"></div>
         </div>
 
-        <!-- TAB 3: My Profile -->
-        <div id="uProfile" class="surface-card hidden">
-            <h3>Registered Account Details</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Full Name</small>
-                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profName"></div>
+        <!-- TAB 3: My Profile (View + Secure Edit) -->
+        <div id="uProfile" class="hidden">
+            <div class="surface-card">
+                <h3>Registered Account Details</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Full Name</small>
+                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profName"></div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Email Address</small>
+                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profEmail"></div>
+                    </div>
+                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Phone Number</small>
+                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profPhone"></div>
+                    </div>
                 </div>
-                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Email Address</small>
-                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profEmail"></div>
-                </div>
-                <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                    <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Phone Number</small>
-                    <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profPhone"></div>
-                </div>
+            </div>
+
+            <!-- Edit Profile Card -->
+            <div class="surface-card">
+                <h3>✏️ Edit Profile Information</h3>
+                <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">Update your name, phone number, or set a new password. Your current password is required to confirm changes.</p>
+
+                <form onsubmit="handleProfileUpdate(event)" style="max-width: 640px;">
+                    <div class="input-grid">
+                        <div class="field">
+                            <label>Full Name</label>
+                            <input type="text" id="editProfName" required>
+                        </div>
+                        <div class="field">
+                            <label>Phone Number</label>
+                            <input type="text" id="editProfPhone" required>
+                        </div>
+                    </div>
+
+                    <div class="input-grid">
+                        <div class="field">
+                            <label>Email Address (Cannot be changed)</label>
+                            <input type="email" id="editProfEmail" disabled>
+                        </div>
+                        <div class="field">
+                            <label>New Password (Optional)</label>
+                            <div class="input-wrap">
+                                <input type="password" id="editProfNewPass" placeholder="Leave blank to keep current">
+                                <button type="button" class="eye-btn" onclick="togglePass('editProfNewPass', this)">SHOW</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="security-confirm-box">
+                        <div class="field" style="margin-bottom: 0;">
+                            <label style="color: #0f172a;">🔐 Confirm Current Password (Required)</label>
+                            <div class="input-wrap">
+                                <input type="password" id="editProfCurrentPass" required placeholder="Enter your current password to save changes">
+                                <button type="button" class="eye-btn" onclick="togglePass('editProfCurrentPass', this)">SHOW</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="width: auto; padding: 12px 26px;">Save Profile Changes</button>
+                </form>
             </div>
         </div>
     </main>
@@ -1217,6 +1279,22 @@
         btn.classList.add('active');
     }
 
+    function syncUserProfileUI() {
+        if (!currentUser) return;
+        document.getElementById('topUserName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+        document.getElementById('profName').textContent = currentUser.name;
+        document.getElementById('profEmail').textContent = currentUser.email;
+        document.getElementById('profPhone').textContent = currentUser.phone;
+
+        // Pre-fill edit form
+        document.getElementById('editProfName').value = currentUser.name;
+        document.getElementById('editProfPhone').value = currentUser.phone;
+        document.getElementById('editProfEmail').value = currentUser.email;
+        document.getElementById('editProfNewPass').value = '';
+        document.getElementById('editProfCurrentPass').value = '';
+    }
+
     async function handleRegister(e) {
         e.preventDefault();
         const res = await postAPI('/api/register', {
@@ -1240,7 +1318,6 @@
         const email = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPass').value;
 
-        // If admin credentials entered, directly log into Admin Panel
         if (email.toLowerCase() === 'admin@rental.com') {
             const adminRes = await postAPI('/api/admin-login', { email, password });
             if (adminRes.status === 'success') {
@@ -1256,7 +1333,6 @@
             }
         }
 
-        // Otherwise, process normal user login
         const res = await postAPI('/api/login', { email, password });
 
         if (res.status === 'success') {
@@ -1265,11 +1341,7 @@
             document.getElementById('authSection').classList.add('hidden');
             document.getElementById('userDashboard').classList.remove('hidden');
 
-            document.getElementById('topUserName').textContent = currentUser.name;
-            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
-            document.getElementById('profName').textContent = currentUser.name;
-            document.getElementById('profEmail').textContent = currentUser.email;
-            document.getElementById('profPhone').textContent = currentUser.phone;
+            syncUserProfileUI();
             showToast(`Welcome back, ${currentUser.name}!`, 'success');
             loadVehicles();
         } else if (res.status === 'locked') {
@@ -1278,6 +1350,23 @@
             document.getElementById('resetBox').classList.remove('hidden');
         } else {
             showToast(res.message, 'error');
+        }
+    }
+
+    async function handleProfileUpdate(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/update-profile', {
+            email: currentUser.email,
+            name: document.getElementById('editProfName').value.trim(),
+            phone: document.getElementById('editProfPhone').value.trim(),
+            new_pass: document.getElementById('editProfNewPass').value,
+            current_pass: document.getElementById('editProfCurrentPass').value
+        });
+
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success' && res.user) {
+            currentUser = res.user;
+            syncUserProfileUI();
         }
     }
 
@@ -1312,6 +1401,7 @@
         document.querySelectorAll('#userDashboard .nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (tabId === 'uAvail') loadVehicles();
+        if (tabId === 'uProfile') syncUserProfileUI();
     }
 
     function showAdminTab(tabId, title, sub, btn) {
