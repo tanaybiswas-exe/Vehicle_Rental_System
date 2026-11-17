@@ -25,7 +25,18 @@
             --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        [data-theme="dark"] {
+            --bg-dark: #030712;
+            --bg-page: #0f172a;
+            --card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success-soft: rgba(16, 185, 129, 0.15);
+            --danger-soft: rgba(239, 68, 68, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.2s, color 0.2s; }
         body { background: var(--bg-page); color: var(--text-main); min-height: 100vh; }
         .hidden { display: none !important; }
 
@@ -54,29 +65,29 @@
         .showcase-hero h1 { font-size: 2.85rem; line-height: 1.15; font-weight: 800; margin-bottom: 1.2rem; color: white; }
         .showcase-hero p { color: #94a3b8; font-size: 1.02rem; line-height: 1.65; }
 
-        .auth-panel { background: #ffffff; display: flex; align-items: center; justify-content: center; padding: 2.5rem; border-top-left-radius: 28px; border-bottom-left-radius: 28px; box-shadow: var(--shadow-lg); overflow-y: auto; }
+        .auth-panel { background: var(--card); display: flex; align-items: center; justify-content: center; padding: 2.5rem; border-top-left-radius: 28px; border-bottom-left-radius: 28px; box-shadow: var(--shadow-lg); overflow-y: auto; }
         .auth-container { width: 100%; max-width: 440px; }
-        .segmented-control { display: grid; grid-template-columns: repeat(2, 1fr); background: #f1f5f9; padding: 5px; border-radius: 12px; margin-bottom: 2rem; }
+        .segmented-control { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--border); padding: 5px; border-radius: 12px; margin-bottom: 2rem; }
         .segmented-control button { border: none; background: transparent; padding: 11px; border-radius: 9px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
-        .segmented-control button.active { background: white; color: var(--text-main); box-shadow: 0 2px 8px rgba(15,23,42,0.08); }
+        .segmented-control button.active { background: var(--card); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
         .form-title h2 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.35rem; }
         .form-title p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem; }
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .field { margin-bottom: 1.15rem; }
-        .field label { display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 6px; }
+        .field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
         .input-wrap { position: relative; }
-        input, select { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 0.93rem; background: #f8fafc; }
-        input:focus, select:focus { outline: none; background: white; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
-        input:disabled { background: #e2e8f0; color: #64748b; }
+        input, select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.93rem; background: var(--bg-page); color: var(--text-main); }
+        input:focus, select:focus { outline: none; background: var(--card); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
+        input:disabled { background: var(--border); color: var(--text-muted); }
         .eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 0.78rem; font-weight: 700; cursor: pointer; }
 
         .btn-primary { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(37,99,235,0.25); }
         .btn-danger { background: var(--danger); box-shadow: 0 6px 16px rgba(239,68,68,0.25); }
-        .btn-outline { background: white; color: var(--text-main); border: 1.5px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-outline { background: var(--card); color: var(--text-main); border: 1.5px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
         .app-shell { display: flex; min-height: 100vh; }
-        .sidebar { width: 270px; background: var(--bg-dark); color: white; padding: 1.75rem 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1e293b; }
+        .sidebar { width: 270px; background: var(--bg-dark); color: white; padding: 1.75rem 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); }
         .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; font-weight: 700; margin: 2rem 0 0.75rem 0.75rem; }
         .nav-menu { display: flex; flex-direction: column; gap: 4px; }
         .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px; border: none; border-radius: 10px; background: transparent; color: #94a3b8; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-align: left; }
@@ -88,58 +99,63 @@
         .header-bar h1 { font-size: 1.65rem; font-weight: 800; }
         .header-bar p { color: var(--text-muted); font-size: 0.88rem; margin-top: 2px; }
 
-        .profile-badge { display: flex; align-items: center; gap: 12px; background: white; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .theme-toggle-btn { background: var(--card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px; font-weight: 600; cursor: pointer; font-size: 0.85rem; color: var(--text-main); box-shadow: var(--shadow-sm); }
+
+        .profile-badge { display: flex; align-items: center; gap: 12px; background: var(--card); padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
         .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; display: grid; place-items: center; font-weight: 800; }
 
         .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
-        .kpi-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; }
+        .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; }
         .kpi-card small { color: var(--text-muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
         .kpi-card h3 { font-size: 1.9rem; font-weight: 800; margin-top: 6px; }
-        .kpi-icon { width: 46px; height: 46px; border-radius: 12px; background: #eff6ff; color: var(--primary); display: grid; place-items: center; font-size: 1.3rem; }
+        .kpi-icon { width: 46px; height: 46px; border-radius: 12px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: grid; place-items: center; font-size: 1.3rem; }
 
         .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; }
-        .filter-pills { display: flex; gap: 8px; }
-        .filter-pill { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: white; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
-        .filter-pill.active { background: var(--bg-dark); color: white; border-color: var(--bg-dark); }
+        .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .filter-pill { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 0.82rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+        .filter-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
-        .vehicle-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; }
+        .vehicle-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; }
         .vc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .vc-id { font-size: 0.78rem; font-weight: 700; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #475569; }
-        .vc-icon-box { height: 80px; background: linear-gradient(135deg, #f8fafc, #eff6ff); border-radius: 12px; display: grid; place-items: center; font-size: 2.4rem; margin-bottom: 1rem; }
+        .vc-id { font-size: 0.78rem; font-weight: 700; background: var(--border); padding: 4px 10px; border-radius: 6px; color: var(--text-main); }
+        .vc-icon-box { height: 80px; background: linear-gradient(135deg, var(--bg-page), rgba(37,99,235,0.05)); border-radius: 12px; display: grid; place-items: center; font-size: 2.4rem; margin-bottom: 1rem; }
         .vc-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
         .vc-type { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 1.2rem; }
         .vc-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); }
         .vc-price strong { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
         .vc-price span { font-size: 0.78rem; color: var(--text-muted); }
 
-        .surface-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 1.6rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
+        .surface-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.6rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
         .surface-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; }
 
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px 16px; background: #f8fafc; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        th { text-align: left; padding: 12px 16px; background: var(--bg-page); color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); }
         td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
-        tr:hover td { background: #f8fafc; }
+        tr:hover td { background: var(--bg-page); }
 
         .status-badge { padding: 5px 11px; border-radius: 999px; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
         .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
-        .badge-avail { background: var(--success-soft); color: #065f46; }
+        .badge-avail { background: var(--success-soft); color: var(--success); }
         .badge-avail::before { background: var(--success); }
-        .badge-rented { background: var(--danger-soft); color: #991b1b; }
+        .badge-rented { background: var(--danger-soft); color: var(--danger); }
         .badge-rented::before { background: var(--danger); }
+        .badge-maint { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+        .badge-maint::before { background: #f59e0b; }
 
-        .btn-mini { padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border); background: white; cursor: pointer; }
-        .btn-mini:hover { background: #f1f5f9; }
+        .btn-mini { padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text-main); cursor: pointer; }
+        .btn-mini:hover { background: var(--bg-page); }
         .btn-mini.del { color: var(--danger); border-color: #fecaca; }
 
-        .security-confirm-box { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 1.15rem; margin-top: 0.5rem; margin-bottom: 1.25rem; }
-        .recovery-card { margin-top: 1.5rem; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 1.3rem; }
-        .recovery-card h4 { color: #be123c; font-size: 0.95rem; margin-bottom: 6px; }
-        .question-pill { background: white; border: 1px solid #ffe4e6; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin: 10px 0; }
+        .security-confirm-box { background: var(--bg-page); border: 1.5px solid var(--border); border-radius: 12px; padding: 1.15rem; margin-top: 0.5rem; margin-bottom: 1.25rem; }
+        .recovery-card { margin-top: 1.5rem; background: var(--danger-soft); border: 1.5px solid var(--danger); border-radius: 12px; padding: 1.3rem; }
+        .recovery-card h4 { color: var(--danger); font-size: 0.95rem; margin-bottom: 6px; }
+        .question-pill { background: var(--card); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin: 10px 0; }
 
         /* Booking Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 999; }
-        .modal-card { background: white; padding: 2rem; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: var(--shadow-lg); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 999; backdrop-filter: blur(4px); }
+        .modal-card { background: var(--card); padding: 2rem; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
 
         @media (max-width: 920px) {
             .auth-shell { grid-template-columns: 1fr; }
@@ -149,7 +165,7 @@
         }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
 <div id="toast" class="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
 
@@ -168,7 +184,7 @@
                 <label>End Date</label>
                 <input type="date" id="bookEndDate" required onchange="calculateCost()">
             </div>
-            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 1.25rem;">
+            <div style="background: var(--bg-page); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.25rem;">
                 <div style="font-size: 0.85rem; color: var(--text-muted);">Estimated Total Cost:</div>
                 <div style="font-size: 1.35rem; font-weight: 800; color: var(--primary);" id="modalTotalCost">0 BDT</div>
             </div>
@@ -190,9 +206,9 @@
         <div class="showcase-hero">
             <div style="color: #93c5fd; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">⚡ C-Engine Native Platform</div>
             <h1>Smart Fleet Management & Bookings.</h1>
-            <p>Seamlessly browse, book, and manage vehicle rentals with permanent C file storage persistence.</p>
+            <p>Seamlessly browse, book, and manage vehicle rentals with permanent C file storage persistence and audit logging.</p>
         </div>
-        <div style="font-size: 0.8rem; color: #64748b;">DriveCore v2.5 &bull; Localhost C Server</div>
+        <div style="font-size: 0.8rem; color: #64748b;">DriveCore v3.0 &bull; Full-Stack Enterprise Edition</div>
     </div>
 
     <div class="auth-panel">
@@ -225,7 +241,7 @@
 
                 <div id="resetBox" class="recovery-card hidden">
                     <h4>🔒 Security Lockout Active (5 Failed Attempts)</h4>
-                    <p style="font-size: 0.83rem; color: #881337;">Verify your security question to reset password and unlock access.</p>
+                    <p style="font-size: 0.83rem;">Verify your security question to reset password and unlock access.</p>
                     <div class="question-pill" id="secQuestionText"></div>
                     <form onsubmit="handlePasswordReset(event)">
                         <div class="field">
@@ -299,11 +315,14 @@
                 <h1 id="userPageTitle">Available Fleet</h1>
                 <p id="userPageSub">Browse and book available vehicles</p>
             </div>
-            <div class="profile-badge">
-                <div class="avatar" id="userAvatar">U</div>
-                <div>
-                    <div style="font-size: 0.88rem; font-weight: 700;" id="topUserName">User</div>
-                    <div style="font-size: 0.72rem; color: var(--success); font-weight: 700;">● Verified</div>
+            <div class="header-actions">
+                <button class="theme-toggle-btn" onclick="toggleTheme()">🌓 Theme</button>
+                <div class="profile-badge">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div>
+                        <div style="font-size: 0.88rem; font-weight: 700;" id="topUserName">User</div>
+                        <div style="font-size: 0.72rem; color: var(--success); font-weight: 700;">● Verified</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -315,7 +334,7 @@
             </div>
             <div class="kpi-card">
                 <div><small>Active Bookings</small><h3 id="statUserActiveBookings" style="color: var(--primary);">0</h3></div>
-                <div class="kpi-icon" style="background: #eef2ff; color: var(--accent);">📑</div>
+                <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--accent);">📑</div>
             </div>
         </div>
 
@@ -323,10 +342,17 @@
         <div id="uAvail">
             <div class="toolbar">
                 <div class="filter-pills">
-                    <button class="filter-pill active" onclick="filterFleet('All', this)">All</button>
+                    <button class="filter-pill active" onclick="filterFleet('All', this)">All Categories</button>
                     <button class="filter-pill" onclick="filterFleet('Sedan', this)">Sedans</button>
                     <button class="filter-pill" onclick="filterFleet('SUV', this)">SUVs</button>
                     <button class="filter-pill" onclick="filterFleet('Bike', this)">Bikes</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <select id="sortFleetSelect" onchange="sortFleet()" style="padding: 7px 12px; font-size: 0.82rem; border-radius: 999px;">
+                        <option value="default">Sort by Rate</option>
+                        <option value="lowHigh">Price: Low to High</option>
+                        <option value="highLow">Price: High to Low</option>
+                    </select>
                 </div>
             </div>
             <div id="userCardsGrid" class="fleet-grid"></div>
@@ -341,20 +367,20 @@
             </table>
         </div>
 
-        <!-- TAB 3: Profile (View + Edit with Password Confirmation) -->
+        <!-- TAB 3: Profile -->
         <div id="uProfile" class="hidden">
             <div class="surface-card">
                 <h3>Registered Account Details</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
                         <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Full Name</small>
                         <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profName"></div>
                     </div>
-                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
                         <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Email Address</small>
                         <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profEmail"></div>
                     </div>
-                    <div style="background: #f8fafc; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
                         <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Phone Number</small>
                         <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profPhone"></div>
                     </div>
@@ -363,7 +389,7 @@
 
             <div class="surface-card">
                 <h3>✏️ Edit Profile Information</h3>
-                <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">Update your name, phone number, or set a new password. Your current password is required to confirm changes.</p>
+                <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">Update your name, phone number, or set a new password. Your current password is required.</p>
 
                 <form onsubmit="handleProfileUpdate(event)" style="max-width: 640px;">
                     <div class="input-grid">
@@ -371,7 +397,7 @@
                         <div class="field"><label>Phone Number</label><input type="text" id="editProfPhone" required></div>
                     </div>
                     <div class="input-grid">
-                        <div class="field"><label>Email Address (Cannot be changed)</label><input type="email" id="editProfEmail" disabled></div>
+                        <div class="field"><label>Email Address (Locked)</label><input type="email" id="editProfEmail" disabled></div>
                         <div class="field">
                             <label>New Password (Optional)</label>
                             <div class="input-wrap">
@@ -382,7 +408,7 @@
                     </div>
                     <div class="security-confirm-box">
                         <div class="field" style="margin-bottom: 0;">
-                            <label style="color: #0f172a;">🔐 Confirm Current Password (Required)</label>
+                            <label style="color: var(--text-main);">🔐 Confirm Current Password (Required)</label>
                             <div class="input-wrap">
                                 <input type="password" id="editProfCurrentPass" required placeholder="Enter current password">
                                 <button type="button" class="eye-btn" onclick="togglePass('editProfCurrentPass', this)">SHOW</button>
@@ -422,16 +448,19 @@
                 <h1 id="adminPageTitle">Revenue Analytics</h1>
                 <p id="adminPageSub">Fleet financials and booking statistics</p>
             </div>
-            <div class="profile-badge">
-                <div class="avatar" style="background: #0f172a;">A</div>
-                <div><div style="font-size: 0.88rem; font-weight: 700;">Administrator</div><div style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">● Root</div></div>
+            <div class="header-actions">
+                <button class="theme-toggle-btn" onclick="toggleTheme()">🌓 Theme</button>
+                <div class="profile-badge">
+                    <div class="avatar" style="background: #0f172a;">A</div>
+                    <div><div style="font-size: 0.88rem; font-weight: 700;">Administrator</div><div style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">● Root</div></div>
+                </div>
             </div>
         </div>
 
         <div class="kpi-row">
             <div class="kpi-card">
                 <div><small>Total Revenue</small><h3 id="statRevenue" style="color: var(--success);">0 BDT</h3></div>
-                <div class="kpi-icon" style="background:#ecfdf5; color:var(--success);">💰</div>
+                <div class="kpi-icon" style="background: var(--success-soft); color: var(--success);">💰</div>
             </div>
             <div class="kpi-card">
                 <div><small>Active Rentals</small><h3 id="statActiveRentals">0</h3></div>
@@ -445,9 +474,12 @@
 
         <!-- TAB 1: Analytics -->
         <div id="aAnalytics" class="surface-card">
-            <h3>Executive Fleet Summary</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Executive Fleet Summary & Reports</h3>
+                <a href="/api/export-csv" class="btn-outline" style="text-decoration: none; font-size: 0.85rem;" download="rentals_report.csv">📥 Export Rentals CSV</a>
+            </div>
             <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                All financials are calculated in real-time from active and completed bookings stored in <code>rentals.txt</code>. Use the sidebar to manage inventory or customer accounts.
+                All financials are calculated in real-time from active and completed bookings stored in <code>rentals.txt</code>. System activities and audit logs are recorded in <code>activity.log</code>.
             </p>
         </div>
 
@@ -479,7 +511,11 @@
                 <div class="field"><label>Price / Day (BDT)</label><input type="number" step="0.01" id="addPrice" required placeholder="4000"></div>
                 <div class="field">
                     <label>Status</label>
-                    <select id="addStatus"><option value="Available">Available</option><option value="Rented">Rented</option></select>
+                    <select id="addStatus">
+                        <option value="Available">Available</option>
+                        <option value="Rented">Rented</option>
+                        <option value="Under Maintenance">Under Maintenance</option>
+                    </select>
                 </div>
                 <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Save Vehicle</button>
             </form>
@@ -499,6 +535,7 @@
                         <option value="">-- Keep Existing --</option>
                         <option value="Available">Available</option>
                         <option value="Rented">Rented</option>
+                        <option value="Under Maintenance">Under Maintenance</option>
                     </select>
                 </div>
                 <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Update</button>
@@ -512,6 +549,12 @@
     let allVehicles = [];
     let currentCategory = 'All';
     let selectedVehicleForBooking = null;
+
+    function toggleTheme() {
+        const body = document.body;
+        const current = body.getAttribute('data-theme');
+        body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
 
     function showToast(msg, type = 'success') {
         const toast = document.getElementById('toast');
@@ -690,6 +733,13 @@
         renderFleet();
     }
 
+    function sortFleet() {
+        const mode = document.getElementById('sortFleetSelect').value;
+        if (mode === 'lowHigh') allVehicles.sort((a,b) => a.price - b.price);
+        else if (mode === 'highLow') allVehicles.sort((a,b) => b.price - a.price);
+        renderFleet();
+    }
+
     function renderFleet() {
         const availList = allVehicles.filter(v => v.status === 'Available' &&
             (currentCategory === 'All' || v.type.toLowerCase() === currentCategory.toLowerCase()));
@@ -809,7 +859,7 @@
                 <td>${v.name}</td>
                 <td>${v.type}</td>
                 <td><strong>${v.price.toFixed(2)} BDT</strong></td>
-                <td><span class="status-badge ${v.status === 'Available' ? 'badge-avail' : 'badge-rented'}">${v.status}</span></td>
+                <td><span class="status-badge ${v.status === 'Available' ? 'badge-avail' : (v.status === 'Rented' ? 'badge-rented' : 'badge-maint')}">${v.status}</span></td>
                 <td><button class="btn-mini del" onclick="deleteVehicle('${v.id}')">Delete</button></td>
             </tr>
         `).join('');
