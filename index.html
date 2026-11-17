@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriveCore — Enterprise Vehicle Rental System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --dark: #0f172a;
+            --dark-secondary: #1e293b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            transform: translateX(150%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 380px;
+        }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #064e3b; color: #ecfdf5; border-left: 4px solid var(--success); }
+        .toast.error { background: #7f1d1d; color: #fef2f2; border-left: 4px solid var(--danger); }
+
+        .hidden { display: none !important; }
+
+        /* ================= AUTH SPLIT SCREEN ================= */
+        .auth-wrapper {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        .auth-banner {
+            flex: 1;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: white;
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-banner::before {
+            content: '';
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(59,130,246,0.25) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-icon {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 1.2rem;
+        }
+
+        .banner-content h1 {
+            font-size: 2.6rem;
+            line-height: 1.2;
+            margin-bottom: 1.2rem;
+            font-weight: 700;
+        }
+
+        .banner-content p {
+            color: #cbd5e1;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            max-width: 460px;
+            margin-bottom: 2rem;
+        }
+
+        .feature-pills {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.92rem;
+            color: #e2e8f0;
+        }
+
+        .feature-pill span {
+            background: rgba(255, 255, 255, 0.12);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .auth-form-side {
+            flex: 1.1;
+            background: var(--card);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2.5rem;
+            overflow-y: auto;
+        }
+
+        .auth-box {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .auth-switcher {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            background: #f1f5f9;
+            padding: 5px;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .auth-switcher button {
+            background: transparent;
+            color: var(--muted);
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .auth-switcher button.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .auth-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-header h2 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .auth-header p {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        /* Forms */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.94rem;
+            color: var(--text);
+            background: #ffffff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .pass-wrapper {
+            position: relative;
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 18px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:hover { background: var(--primary-hover); }
+        .btn:active { transform: scale(0.99); }
+        .btn-sm { width: auto; padding: 9px 16px; font-size: 0.88rem; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-dark { background: var(--dark); }
+        .btn-dark:hover { background: var(--dark-secondary); }
+
+        .password-hint {
+            font-size: 0.76rem;
+            color: var(--muted);
+            margin-top: 5px;
+        }
+
+        /* Security Lock Box */
+        .lock-box {
+            margin-top: 1.5rem;
+            background: #fef2f2;
+            border: 1.5px solid #fecaca;
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .lock-box h3 {
+            color: #991b1b;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sec-q-display {
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            border: 1px solid #fee2e2;
+        }
+
+        /* ================= DASHBOARD LAYOUT ================= */
+        .dash-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--dark);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .sidebar-nav {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            padding: 11px 14px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 0.92rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem 2.5rem;
+            overflow-y: auto;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .topbar h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .avatar-circle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: grid;
+            place-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+
+        .stat-card span {
+            font-size: 0.82rem;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .stat-card h3 {
+            font-size: 1.8rem;
+            margin-top: 6px;
+            color: var(--dark);
+        }
+
+        /* Content Card & Tables */
+        .panel-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .panel-card h3 {
+            font-size: 1.15rem;
+            margin-bottom: 1.2rem;
+            color: var(--dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 14px;
+            background: #f8fafc;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.92rem;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        .pill {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .pill-avail {
+            background: var(--success-bg);
+            color: #065f46;
+        }
+
+        .pill-rented {
+            background: var(--danger-bg);
+            color: #991b1b;
+        }
+
+        /* Profile Card */
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .profile-field {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .profile-field small {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .profile-field strong {
+            font-size: 1.05rem;
+            color: var(--dark);
+        }
+
+        @media (max-width: 850px) {
+            .auth-banner { display: none; }
+            .dash-layout { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- ==================== AUTHENTICATION VIEW ==================== -->
+<div id="authSection" class="auth-wrapper">
+    <!-- Left Branding Banner -->
+    <div class="auth-banner">
+        <div class="brand-logo">
+            <div class="brand-icon">🚘</div>
+            <span>DriveCore</span>
+        </div>
+
+        <div class="banner-content">
+            <h1>Next-Gen Fleet & Vehicle Rental Platform.</h1>
+            <p>Seamless vehicle booking, real-time availability tracking, and instant fleet administration powered by a high-speed C backend engine.</p>
+            <div class="feature-pills">
+                <div class="feature-pill"><span>⚡ C Engine</span> Ultra-fast file-based persistence</div>
+                <div class="feature-pill"><span>🛡️ Protected</span> 5-attempt lockout & security recovery</div>
+                <div class="feature-pill"><span>📊 Admin Suite</span> Full inventory & user oversight</div>
+            </div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: #94a3b8;">
+            &copy; 2026 DriveCore Vehicle Systems. Localhost C Server.
+        </div>
+    </div>
+
+    <!-- Right Form Area -->
+    <div class="auth-form-side">
+        <div class="auth-box">
+            <div class="auth-switcher">
+                <button class="active" onclick="switchAuthTab('userLogin', this)">User Login</button>
+                <button onclick="switchAuthTab('userReg', this)">Register</button>
+                <button onclick="switchAuthTab('adminLogin', this)">Admin</button>
+            </div>
+
+            <!-- 1. USER LOGIN FORM -->
+            <div id="userLogin">
+                <div class="auth-header">
+                    <h2>Welcome back</h2>
+                    <p>Enter your credentials to access your rental dashboard.</p>
+                </div>
+                <form onsubmit="handleUserLogin(event)">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="loginEmail" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="loginPass" required placeholder="••••••••">
+                            <button type="button" class="toggle-pass" onclick="togglePassword('loginPass', this)">Show</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Sign In</button>
+                </form>
+
+                <!-- Security Question Recovery Box (After 5 Failed Attempts) -->
+                <div id="resetBox" class="lock-box hidden">
+                    <h3>🔒 Account Locked (5 Failed Attempts)</h3>
+                    <p style="font-size: 0.85rem; color: #7f1d1d; margin-bottom: 10px;">Answer your security question below to reset your password.</p>
+                    <div class="sec-q-display" id="secQuestionText"></div>
+                    <form onsubmit="handlePasswordReset(event)">
+                        <div class="form-group">
+                            <label>Your Security Answer</label>
+                            <input type="text" id="resetAnswer" required placeholder="Enter exact answer">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" id="resetNewPass" required placeholder="New strong password">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <input type="password" id="resetConfirmPass" required placeholder="Repeat password">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-danger">Reset & Unlock Account</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 2. USER REGISTRATION FORM -->
+            <div id="userReg" class="hidden">
+                <div class="auth-header">
+                    <h2>Create an account</h2>
+                    <p>Register to browse available vehicles and manage rentals.</p>
+                </div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="regName" required placeholder="Tanay Biswas">
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="text" id="regPhone" required placeholder="017XXXXXXXX">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="regEmail" required placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="regPass" required placeholder="Create a strong password">
+                            <button type="button" class="toggle-pass" onclick="togglePassword('regPass', this)">Show</button>
+                        </div>
+                        <div class="password-hint">Must be 6+ characters with at least 1 letter, 1 number & 1 special symbol.</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Personal Security Question</label>
+                        <input type="text" id="regSecQ" required placeholder="e.g., What is your childhood nickname?">
+                    </div>
+                    <div class="form-group">
+                        <label>Security Answer</label>
+                        <input type="text" id="regSecA" required placeholder="Answer for password recovery">
+                    </div>
+                    <button type="submit" class="btn">Create Account</button>
+                </form>
+            </div>
+
+            <!-- 3. ADMIN LOGIN FORM -->
+            <div id="adminLogin" class="hidden">
+                <div class="auth-header">
+                    <h2>Admin Portal</h2>
+                    <p>Restricted access for authorized fleet administrators only.</p>
+                </div>
+                <form onsubmit="handleAdminLogin(event)">
+                    <div class="form-group">
+                        <label>Administrator Email</label>
+                        <input type="email" id="adminEmail" required placeholder="admin@rental.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Administrator Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="adminPass" required placeholder="••••••••">
+                            <button type="button" class="toggle-pass" onclick="togglePassword('adminPass', this)">Show</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-dark">Access Control Panel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== USER DASHBOARD ==================== -->
+<div id="userDashboard" class="dash-layout hidden">
+    <aside class="sidebar">
+        <div>
+            <div class="brand-logo" style="font-size: 1.3rem;">
+                <div class="brand-icon" style="width: 34px; height: 34px;">🚘</div>
+                <span>DriveCore</span>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="showUserTab('uAvail', 'Available Vehicles', this)">🚗 Available Vehicles</button>
+                <button class="nav-item" onclick="showUserTab('uSearch', 'Search Vehicle', this)">🔍 Search Vehicle</button>
+                <button class="nav-item" onclick="showUserTab('uProfile', 'My Profile', this)">👤 My Profile</button>
+            </nav>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <h2 id="userPageTitle">Available Vehicles</h2>
+            <div class="user-chip">
+                <div class="avatar-circle" id="userAvatar">U</div>
+                <span id="topUserName">User</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span>Available Now</span>
+                <h3 id="statUserAvail">0</h3>
+            </div>
+            <div class="stat-card">
+                <span>Account Status</span>
+                <h3 style="color: var(--success); font-size: 1.3rem; margin-top: 10px;">Verified Member</h3>
+            </div>
+        </div>
+
+        <!-- View Available Vehicles -->
+        <div id="uAvail" class="panel-card">
+            <h3>Ready for Rental</h3>
+            <table>
+                <thead><tr><th>Vehicle ID</th><th>Vehicle Name</th><th>Category</th><th>Daily Rate</th><th>Status</th></tr></thead>
+                <tbody id="userAvailTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Search Vehicle -->
+        <div id="uSearch" class="panel-card hidden">
+            <h3>Lookup Vehicle by ID</h3>
+            <div style="display:flex; gap:10px; max-width: 450px;">
+                <input type="text" id="userSearchId" placeholder="Enter Vehicle ID (e.g., V101)">
+                <button class="btn btn-sm" onclick="searchVehicle('user')">Search</button>
+            </div>
+            <div id="userSearchResult" style="margin-top: 1.5rem;"></div>
+        </div>
+
+        <!-- My Profile -->
+        <div id="uProfile" class="panel-card hidden">
+            <h3>Personal Account Information</h3>
+            <div class="profile-grid">
+                <div class="profile-field">
+                    <small>Full Name</small>
+                    <strong id="profName"></strong>
+                </div>
+                <div class="profile-field">
+                    <small>Email Address</small>
+                    <strong id="profEmail"></strong>
+                </div>
+                <div class="profile-field">
+                    <small>Phone Number</small>
+                    <strong id="profPhone"></strong>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ==================== ADMIN DASHBOARD ==================== -->
+<div id="adminDashboard" class="dash-layout hidden">
+    <aside class="sidebar">
+        <div>
+            <div class="brand-logo" style="font-size: 1.3rem;">
+                <div class="brand-icon" style="width: 34px; height: 34px; background: var(--warning); color: var(--dark);">⚡</div>
+                <span>Admin Panel</span>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="showAdminTab('aVehicles', 'Fleet Inventory', this)">🚘 All Vehicles</button>
+                <button class="nav-item" onclick="showAdminTab('aUsers', 'Registered Users', this)">👥 Registered Users</button>
+                <button class="nav-item" onclick="showAdminTab('aAdd', 'Add New Vehicle', this)">➕ Add Vehicle</button>
+                <button class="nav-item" onclick="showAdminTab('aUpdate', 'Update Vehicle', this)">✏️ Update Vehicle</button>
+                <button class="nav-item" onclick="showAdminTab('aDelete', 'Delete Vehicle', this)">🗑️ Delete Vehicle</button>
+                <button class="nav-item" onclick="showAdminTab('aSearch', 'Search Vehicle', this)">🔍 Search Vehicle</button>
+            </nav>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <h2 id="adminPageTitle">Fleet Inventory</h2>
+            <div class="user-chip">
+                <div class="avatar-circle" style="background: var(--dark);">A</div>
+                <span>System Admin</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span>Total Vehicles</span>
+                <h3 id="statTotalVehicles">0</h3>
+            </div>
+            <div class="stat-card">
+                <span>Available Vehicles</span>
+                <h3 id="statAvailVehicles" style="color: var(--success);">0</h3>
+            </div>
+            <div class="stat-card">
+                <span>Registered Users</span>
+                <h3 id="statTotalUsers" style="color: var(--primary);">0</h3>
+            </div>
+        </div>
+
+        <!-- View All Vehicles -->
+        <div id="aVehicles" class="panel-card">
+            <h3>Complete Vehicle Database (vehicles.txt)</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Vehicle Name</th><th>Type</th><th>Price / Day</th><th>Status</th></tr></thead>
+                <tbody id="adminVehiclesTable"></tbody>
+            </table>
+        </div>
+
+        <!-- View All Users -->
+        <div id="aUsers" class="panel-card hidden">
+            <h3>Registered Users Directory (users.txt)</h3>
+            <table>
+                <thead><tr><th>Full Name</th><th>Email Address</th><th>Phone Number</th></tr></thead>
+                <tbody id="adminUsersTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Add Vehicle -->
+        <div id="aAdd" class="panel-card hidden">
+            <h3>Register New Vehicle</h3>
+            <form onsubmit="handleAddVehicle(event)" style="max-width: 650px;">
+                <div class="form-row">
+                    <div class="form-group"><label>Vehicle ID</label><input type="text" id="addId" required placeholder="e.g., V105"></div>
+                    <div class="form-group"><label>Vehicle Name</label><input type="text" id="addName" required placeholder="e.g., Toyota Premio"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Vehicle Type</label><input type="text" id="addType" required placeholder="Sedan, SUV, Bike"></div>
+                    <div class="form-group"><label>Rental Price Per Day (BDT)</label><input type="number" step="0.01" id="addPrice" required placeholder="4000"></div>
+                </div>
+                <div class="form-group">
+                    <label>Availability Status</label>
+                    <select id="addStatus">
+                        <option value="Available">Available</option>
+                        <option value="Rented">Rented</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-sm">Add to Fleet</button>
+            </form>
+        </div>
+
+        <!-- Update Vehicle -->
+        <div id="aUpdate" class="panel-card hidden">
+            <h3>Update Existing Vehicle</h3>
+            <form onsubmit="handleUpdateVehicle(event)" style="max-width: 650px;">
+                <div class="form-group">
+                    <label>Target Vehicle ID (Required)</label>
+                    <input type="text" id="updId" required placeholder="Enter existing Vehicle ID (e.g., V101)">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>New Name (Optional)</label><input type="text" id="updName" placeholder="Leave blank to keep current"></div>
+                    <div class="form-group"><label>New Type (Optional)</label><input type="text" id="updType" placeholder="Leave blank to keep current"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>New Price/Day (Optional)</label><input type="number" step="0.01" id="updPrice" placeholder="Leave blank to keep current"></div>
+                    <div class="form-group">
+                        <label>Availability Status</label>
+                        <select id="updStatus">
+                            <option value="">-- Keep Existing Status --</option>
+                            <option value="Available">Available</option>
+                            <option value="Rented">Rented</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm">Save Changes</button>
+            </form>
+        </div>
+
+        <!-- Delete Vehicle -->
+        <div id="aDelete" class="panel-card hidden">
+            <h3>Remove Vehicle from Fleet</h3>
+            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">Enter the Vehicle ID to permanently remove it from <code>vehicles.txt</code>.</p>
+            <div style="display:flex; gap:10px; max-width: 450px;">
+                <input type="text" id="delId" placeholder="Enter Vehicle ID (e.g., V104)">
+                <button class="btn btn-danger btn-sm" onclick="handleDeleteVehicle()">Delete Vehicle</button>
+            </div>
+        </div>
+
+        <!-- Search Vehicle -->
+        <div id="aSearch" class="panel-card hidden">
+            <h3>Search Fleet by ID</h3>
+            <div style="display:flex; gap:10px; max-width: 450px;">
+                <input type="text" id="adminSearchId" placeholder="Enter Vehicle ID">
+                <button class="btn btn-sm" onclick="searchVehicle('admin')">Search</button>
+            </div>
+            <div id="adminSearchResult" style="margin-top: 1.5rem;"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    let currentUser = null;
+    let allVehicles = [];
+
+    function showToast(msg, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => { toast.classList.remove('show'); }, 4500);
+    }
+
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = 'Hide';
+        } else {
+            input.type = 'password';
+            btn.textContent = 'Show';
+        }
+    }
+
+    function encodeForm(data) {
+        return Object.keys(data).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])).join('&');
+    }
+
+    async function postAPI(url, data) {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: encodeForm(data)
+        });
+        return res.json();
+    }
+
+    function switchAuthTab(tabId, btn) {
+        ['userLogin', 'userReg', 'adminLogin'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+        document.querySelectorAll('.auth-switcher button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/register', {
+            name: document.getElementById('regName').value,
+            email: document.getElementById('regEmail').value,
+            phone: document.getElementById('regPhone').value,
+            password: document.getElementById('regPass').value,
+            sec_q: document.getElementById('regSecQ').value,
+            sec_a: document.getElementById('regSecA').value
+        });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            e.target.reset();
+            switchAuthTab('userLogin', document.querySelectorAll('.auth-switcher button')[0]);
+        }
+    }
+
+    async function handleUserLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const res = await postAPI('/api/login', {
+            email: email,
+            password: document.getElementById('loginPass').value
+        });
+
+        if (res.status === 'success') {
+            currentUser = res.user;
+            document.getElementById('resetBox').classList.add('hidden');
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('userDashboard').classList.remove('hidden');
+
+            document.getElementById('topUserName').textContent = currentUser.name;
+            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            document.getElementById('profName').textContent = currentUser.name;
+            document.getElementById('profEmail').textContent = currentUser.email;
+            document.getElementById('profPhone').textContent = currentUser.phone;
+            showToast(`Welcome back, ${currentUser.name}!`, 'success');
+            loadVehicles();
+        } else if (res.status === 'locked') {
+            showToast(res.message, 'error');
+            document.getElementById('secQuestionText').textContent = res.sec_q;
+            document.getElementById('resetBox').classList.remove('hidden');
+        } else {
+            showToast(res.message, 'error');
+        }
+    }
+
+    async function handlePasswordReset(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/reset-password', {
+            email: document.getElementById('loginEmail').value,
+            sec_a: document.getElementById('resetAnswer').value,
+            new_pass: document.getElementById('resetNewPass').value,
+            confirm_pass: document.getElementById('resetConfirmPass').value
+        });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            document.getElementById('resetBox').classList.add('hidden');
+            e.target.reset();
+        }
+    }
+
+    async function handleAdminLogin(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/admin-login', {
+            email: document.getElementById('adminEmail').value,
+            password: document.getElementById('adminPass').value
+        });
+        if (res.status === 'success') {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            showToast('Admin authenticated.', 'success');
+            loadUsers();
+            loadVehicles();
+        } else {
+            showToast(res.message, 'error');
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('userDashboard').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.add('hidden');
+        document.getElementById('authSection').classList.remove('hidden');
+        showToast('Logged out successfully.', 'success');
+    }
+
+    function showUserTab(tabId, title, btn) {
+        ['uAvail', 'uSearch', 'uProfile'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+        document.getElementById('userPageTitle').textContent = title;
+        document.querySelectorAll('#userDashboard .nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (tabId === 'uAvail') loadVehicles();
+    }
+
+    function showAdminTab(tabId, title, btn) {
+        ['aVehicles', 'aUsers', 'aAdd', 'aUpdate', 'aDelete', 'aSearch'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+        document.getElementById('adminPageTitle').textContent = title;
+        document.querySelectorAll('#adminDashboard .nav-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (tabId === 'aUsers') loadUsers();
+        if (tabId === 'aVehicles') loadVehicles();
+    }
+
+    async function loadVehicles() {
+        const res = await fetch('/api/vehicles');
+        const data = await res.json();
+        allVehicles = data.vehicles || [];
+
+        const availList = allVehicles.filter(v => v.status === 'Available');
+        document.getElementById('statUserAvail').textContent = availList.length;
+        document.getElementById('statTotalVehicles').textContent = allVehicles.length;
+        document.getElementById('statAvailVehicles').textContent = availList.length;
+
+        // User Table
+        document.getElementById('userAvailTable').innerHTML = availList
+            .map(v => `<tr>
+                <td><strong>${v.id}</strong></td>
+                <td>${v.name}</td>
+                <td>${v.type}</td>
+                <td><strong>${v.price.toFixed(2)} BDT</strong></td>
+                <td><span class="pill pill-avail">${v.status}</span></td>
+            </tr>`).join('') || '<tr><td colspan="5">No available vehicles right now.</td></tr>';
+
+        // Admin Table
+        document.getElementById('adminVehiclesTable').innerHTML = allVehicles
+            .map(v => `<tr>
+                <td><strong>${v.id}</strong></td>
+                <td>${v.name}</td>
+                <td>${v.type}</td>
+                <td><strong>${v.price.toFixed(2)} BDT</strong></td>
+                <td><span class="pill ${v.status === 'Available' ? 'pill-avail' : 'pill-rented'}">${v.status}</span></td>
+            </tr>`).join('') || '<tr><td colspan="5">No vehicles found.</td></tr>';
+    }
+
+    async function loadUsers() {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        const users = data.users || [];
+        document.getElementById('statTotalUsers').textContent = users.length;
+        document.getElementById('adminUsersTable').innerHTML = users
+            .map(u => `<tr><td><strong>${u.name}</strong></td><td>${u.email}</td><td>${u.phone}</td></tr>`)
+            .join('') || '<tr><td colspan="3">No registered users yet.</td></tr>';
+    }
+
+    async function searchVehicle(role) {
+        await loadVehicles();
+        const id = document.getElementById(role === 'user' ? 'userSearchId' : 'adminSearchId').value.trim();
+        const box = document.getElementById(role === 'user' ? 'userSearchResult' : 'adminSearchResult');
+        const v = allVehicles.find(item => item.id.toLowerCase() === id.toLowerCase());
+
+        if (v) {
+            box.innerHTML = `<div class="profile-grid" style="max-width: 650px;">
+                <div class="profile-field"><small>Vehicle ID</small><strong>${v.id}</strong></div>
+                <div class="profile-field"><small>Vehicle Name</small><strong>${v.name}</strong></div>
+                <div class="profile-field"><small>Category</small><strong>${v.type}</strong></div>
+                <div class="profile-field"><small>Daily Rate</small><strong>${v.price.toFixed(2)} BDT</strong></div>
+                <div class="profile-field"><small>Status</small><span class="pill ${v.status === 'Available' ? 'pill-avail' : 'pill-rented'}">${v.status}</span></div>
+            </div>`;
+        } else {
+            box.innerHTML = `<p style="color:var(--danger); font-weight:600;">No vehicle found with ID "${id}".</p>`;
+        }
+    }
+
+    async function handleAddVehicle(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/vehicles/add', {
+            id: document.getElementById('addId').value.trim(),
+            name: document.getElementById('addName').value.trim(),
+            type: document.getElementById('addType').value.trim(),
+            price: document.getElementById('addPrice').value,
+            status: document.getElementById('addStatus').value
+        });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            e.target.reset();
+            loadVehicles();
+        }
+    }
+
+    async function handleUpdateVehicle(e) {
+        e.preventDefault();
+        const res = await postAPI('/api/vehicles/update', {
+            id: document.getElementById('updId').value.trim(),
+            name: document.getElementById('updName').value.trim(),
+            type: document.getElementById('updType').value.trim(),
+            price: document.getElementById('updPrice').value,
+            status: document.getElementById('updStatus').value
+        });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            e.target.reset();
+            loadVehicles();
+        }
+    }
+
+    async function handleDeleteVehicle() {
+        const id = document.getElementById('delId').value.trim();
+        if (!id) return showToast('Please enter a Vehicle ID.', 'error');
+        if (!confirm(`Are you sure you want to permanently delete vehicle "${id}"?`)) return;
+
+        const res = await postAPI('/api/vehicles/delete', { id });
+        showToast(res.message, res.status === 'success' ? 'success' : 'error');
+        if (res.status === 'success') {
+            document.getElementById('delId').value = '';
+            loadVehicles();
+        }
+    }
+</script>
+</body>
+</html>
