@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include<time.h>
 #include <winsock2.h>
 
 #pragma comment(lib, "ws2_32.lib")
