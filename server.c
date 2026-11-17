@@ -237,6 +237,73 @@ void login_user(const char *body, char *response_json) {
     }
 }
 
+void update_user_profile(const char *body, char *response_json) {
+    char email[100], new_name[100], new_phone[30], current_pass[100], new_pass[100];
+    get_param(body, "email", email, sizeof(email));
+    get_param(body, "name", new_name, sizeof(new_name));
+    get_param(body, "phone", new_phone, sizeof(new_phone));
+    get_param(body, "current_pass", current_pass, sizeof(current_pass));
+    get_param(body, "new_pass", new_pass, sizeof(new_pass));
+
+    if (strlen(new_name) == 0 || strlen(new_phone) == 0 || strlen(current_pass) == 0) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Name, phone, and current password are required.\"}");
+        return;
+    }
+
+    if (strlen(new_pass) > 0 && !validate_password(new_pass)) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"New password must be 6+ chars with 1 letter, 1 number & 1 special symbol.\"}");
+        return;
+    }
+
+    FILE *fp = fopen(USERS_FILE, "r");
+    FILE *temp = fopen("temp_users.txt", "w");
+    if (!fp || !temp) {
+        if (fp) fclose(fp);
+        if (temp) fclose(temp);
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Database file error.\"}");
+        return;
+    }
+
+    char line[600];
+    User u;
+    int updated = 0;
+    int pass_wrong = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\r\n")] = 0;
+        if (sscanf(line, "%99[^|]|%99[^|]|%29[^|]|%99[^|]|%199[^|]|%99[^|]|%d",
+                   u.name, u.email, u.phone, u.password, u.sec_q, u.sec_a, &u.failed_attempts) == 7) {
+            if (strcmp(u.email, email) == 0) {
+                if (strcmp(u.password, current_pass) == 0) {
+                    strcpy(u.name, new_name);
+                    strcpy(u.phone, new_phone);
+                    if (strlen(new_pass) > 0) {
+                        strcpy(u.password, new_pass);
+                    }
+                    updated = 1;
+                    snprintf(response_json, BUFFER_SIZE,
+                             "{\"status\":\"success\",\"message\":\"Profile updated successfully!\",\"user\":{\"name\":\"%s\",\"email\":\"%s\",\"phone\":\"%s\"}}",
+                             u.name, u.email, u.phone);
+                } else {
+                    pass_wrong = 1;
+                }
+            }
+            fprintf(temp, "%s|%s|%s|%s|%s|%s|%d\n", u.name, u.email, u.phone, u.password, u.sec_q, u.sec_a, u.failed_attempts);
+        }
+    }
+
+    fclose(fp);
+    fclose(temp);
+    remove(USERS_FILE);
+    rename("temp_users.txt", USERS_FILE);
+
+    if (pass_wrong) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Incorrect current password! Changes not saved.\"}");
+    } else if (!updated) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"User account not found.\"}");
+    }
+}
+
 void reset_password(const char *body, char *response_json) {
     char email[100], sec_a[100], new_pass[100], confirm_pass[100];
     get_param(body, "email", email, sizeof(email));
@@ -456,7 +523,7 @@ void delete_vehicle(const char *body, char *response_json) {
                    v.id, v.name, v.type, &v.price, v.status) == 5) {
             if (strcmp(v.id, id) == 0) {
                 found = 1;
-                continue; // Skip writing to delete
+                continue;
             }
             fprintf(temp, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
         }
@@ -539,7 +606,6 @@ int main() {
     printf("==================================================\n");
     printf("  C Vehicle Rental System Web Server Running!\n");
     printf("  Open your browser at: http://localhost:%d\n", PORT);
-    printf("  Default Admin: %s / %s\n", ADMIN_EMAIL, ADMIN_PASS);
     printf("==================================================\n");
 
     char *buffer = (char *)malloc(BUFFER_SIZE);
@@ -564,6 +630,9 @@ int main() {
                 send_response(client_fd, "application/json", json_out);
             } else if (strncmp(buffer, "POST /api/login", 15) == 0) {
                 login_user(body, json_out);
+                send_response(client_fd, "application/json", json_out);
+            } else if (strncmp(buffer, "POST /api/update-profile", 24) == 0) {
+                update_user_profile(body, json_out);
                 send_response(client_fd, "application/json", json_out);
             } else if (strncmp(buffer, "POST /api/reset-password", 24) == 0) {
                 reset_password(body, json_out);
