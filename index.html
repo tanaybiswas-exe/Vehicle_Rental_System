@@ -77,7 +77,6 @@
             background: var(--bg-dark);
         }
 
-        /* Left Visual Showcase */
         .auth-showcase {
             position: relative;
             padding: 3.5rem 4rem;
@@ -201,7 +200,6 @@
             justify-content: space-between;
         }
 
-        /* Right Auth Form Panel */
         .auth-panel {
             background: #ffffff;
             display: flex;
@@ -221,7 +219,7 @@
 
         .segmented-control {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             background: #f1f5f9;
             padding: 5px;
             border-radius: 12px;
@@ -232,9 +230,9 @@
         .segmented-control button {
             border: none;
             background: transparent;
-            padding: 10px 8px;
+            padding: 11px 8px;
             border-radius: 9px;
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: var(--text-muted);
             cursor: pointer;
@@ -320,7 +318,6 @@
 
         .eye-btn:hover { color: var(--primary); }
 
-        /* Password Strength Bar */
         .strength-meter {
             height: 4px;
             background: #e2e8f0;
@@ -358,11 +355,6 @@
             box-shadow: 0 10px 20px rgba(37, 99, 235, 0.32);
         }
 
-        .btn-dark {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
-        }
-
         .btn-danger {
             background: var(--danger);
             box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
@@ -382,7 +374,6 @@
 
         .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
 
-        /* Account Lockout Box */
         .recovery-card {
             margin-top: 1.5rem;
             background: #fff1f2;
@@ -463,6 +454,7 @@
         }
 
         .nav-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--xdish = #1d4ed8));
             background: linear-gradient(135deg, var(--primary), #1d4ed8);
             color: white;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
@@ -516,7 +508,6 @@
             font-size: 0.9rem;
         }
 
-        /* KPI Cards */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -560,7 +551,6 @@
             font-size: 1.3rem;
         }
 
-        /* Fleet Cards Grid */
         .toolbar {
             display: flex;
             justify-content: space-between;
@@ -673,7 +663,6 @@
             color: var(--text-muted);
         }
 
-        /* Data Surface & Tables */
         .surface-card {
             background: white;
             border: 1px solid var(--border);
@@ -772,7 +761,6 @@
 
 <!-- ==================== 1. AUTHENTICATION PORTAL ==================== -->
 <div id="authSection" class="auth-shell">
-    <!-- Left Executive Branding -->
     <div class="auth-showcase">
         <div class="auth-grid-overlay"></div>
 
@@ -810,26 +798,24 @@
         </div>
     </div>
 
-    <!-- Right Auth Forms -->
     <div class="auth-panel">
         <div class="auth-container">
             <div class="segmented-control">
-                <button class="active" onclick="switchAuthTab('userLogin', this)">User Sign In</button>
+                <button class="active" onclick="switchAuthTab('userLogin', this)">Sign In</button>
                 <button onclick="switchAuthTab('userReg', this)">Create Account</button>
-                <button onclick="switchAuthTab('adminLogin', this)">Admin Portal</button>
             </div>
 
-            <!-- USER LOGIN -->
+            <!-- LOGIN FORM (Handles both User and Admin based on credentials) -->
             <div id="userLogin">
                 <div class="form-title">
                     <h2>Sign in to DriveCore</h2>
-                    <p>Access live vehicle availability and your personal profile.</p>
+                    <p>Enter your credentials to access your dashboard.</p>
                 </div>
 
                 <form onsubmit="handleUserLogin(event)">
                     <div class="field">
                         <label>Email Address</label>
-                        <input type="email" id="loginEmail" required placeholder="tanay@example.com">
+                        <input type="email" id="loginEmail" required placeholder="tanay@example.com or admin@rental.com">
                     </div>
                     <div class="field">
                         <label>Password</label>
@@ -841,20 +827,19 @@
                     <button type="submit" class="btn-primary">Sign In to Dashboard</button>
                 </form>
 
-                <!-- Security Lockout Recovery -->
                 <div id="resetBox" class="recovery-card hidden">
                     <h4>🔒 Security Lockout Active (5 Failed Attempts)</h4>
-                    <p style="font-size: 0.83rem; color: #881337;">Verify your personal security question to reset your password and unlock access.</p>
+                    <p style="font-size: 0.83rem; color: #881337;">Verify your security question to reset password and unlock access.</p>
                     <div class="question-pill" id="secQuestionText"></div>
                     <form onsubmit="handlePasswordReset(event)">
                         <div class="field">
                             <label>Security Answer</label>
-                            <input type="text" id="resetAnswer" required placeholder="Enter your registered answer">
+                            <input type="text" id="resetAnswer" required placeholder="Enter exact answer">
                         </div>
                         <div class="input-grid">
                             <div class="field">
                                 <label>New Password</label>
-                                <input type="password" id="resetNewPass" required placeholder="6+ chars, A-z, 0-9, @#$">
+                                <input type="password" id="resetNewPass" required placeholder="6+ chars, letter, num, symbol">
                             </div>
                             <div class="field">
                                 <label>Confirm Password</label>
@@ -906,29 +891,6 @@
                         <input type="text" id="regSecA" required placeholder="Answer used if account locks">
                     </div>
                     <button type="submit" class="btn-primary">Complete Registration</button>
-                </form>
-            </div>
-
-            <!-- ADMIN LOGIN -->
-            <div id="adminLogin" class="hidden">
-                <div class="form-title">
-                    <h2>Administrator Access</h2>
-                    <p>Authorized personnel only. All changes persist to disk.</p>
-                </div>
-
-                <form onsubmit="handleAdminLogin(event)">
-                    <div class="field">
-                        <label>Admin Email</label>
-                        <input type="email" id="adminEmail" required placeholder="admin@rental.com">
-                    </div>
-                    <div class="field">
-                        <label>Admin Password</label>
-                        <div class="input-wrap">
-                            <input type="password" id="adminPass" required placeholder="Enter admin password">
-                            <button type="button" class="eye-btn" onclick="togglePass('adminPass', this)">SHOW</button>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn-primary btn-dark">Authenticate Admin</button>
                 </form>
             </div>
         </div>
@@ -999,10 +961,8 @@
                 <button class="btn-outline" onclick="toggleUserViewMode()" id="viewToggleBtn">Switch to Table View</button>
             </div>
 
-            <!-- Card Grid View -->
             <div id="userCardsGrid" class="fleet-grid"></div>
 
-            <!-- Table View -->
             <div id="userTableWrap" class="surface-card hidden">
                 <table>
                     <thead><tr><th>Vehicle ID</th><th>Vehicle Name</th><th>Category</th><th>Daily Rate</th><th>Status</th></tr></thead>
@@ -1251,7 +1211,7 @@
     }
 
     function switchAuthTab(tabId, btn) {
-        ['userLogin', 'userReg', 'adminLogin'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        ['userLogin', 'userReg'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(tabId).classList.remove('hidden');
         document.querySelectorAll('.segmented-control button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -1277,10 +1237,27 @@
 
     async function handleUserLogin(e) {
         e.preventDefault();
-        const res = await postAPI('/api/login', {
-            email: document.getElementById('loginEmail').value,
-            password: document.getElementById('loginPass').value
-        });
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPass').value;
+
+        // If admin credentials entered, directly log into Admin Panel
+        if (email.toLowerCase() === 'admin@rental.com') {
+            const adminRes = await postAPI('/api/admin-login', { email, password });
+            if (adminRes.status === 'success') {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                showToast('Admin session active.', 'success');
+                loadUsers();
+                loadVehicles();
+                return;
+            } else {
+                showToast('Invalid admin credentials.', 'error');
+                return;
+            }
+        }
+
+        // Otherwise, process normal user login
+        const res = await postAPI('/api/login', { email, password });
 
         if (res.status === 'success') {
             currentUser = res.user;
@@ -1316,23 +1293,6 @@
         if (res.status === 'success') {
             document.getElementById('resetBox').classList.add('hidden');
             e.target.reset();
-        }
-    }
-
-    async function handleAdminLogin(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/admin-login', {
-            email: document.getElementById('adminEmail').value,
-            password: document.getElementById('adminPass').value
-        });
-        if (res.status === 'success') {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.remove('hidden');
-            showToast('Admin session active.', 'success');
-            loadUsers();
-            loadVehicles();
-        } else {
-            showToast(res.message, 'error');
         }
     }
 
@@ -1390,7 +1350,6 @@
         const availList = allVehicles.filter(v => v.status === 'Available' &&
             (currentCategory === 'All' || v.type.toLowerCase() === currentCategory.toLowerCase()));
 
-        // Cards View
         document.getElementById('userCardsGrid').innerHTML = availList.map(v => `
             <div class="vehicle-card">
                 <div>
@@ -1408,7 +1367,6 @@
             </div>
         `).join('') || '<p style="color:var(--text-muted);">No available vehicles match this category.</p>';
 
-        // Table View
         document.getElementById('userAvailTable').innerHTML = availList.map(v => `
             <tr>
                 <td><strong>${v.id}</strong></td>
@@ -1437,7 +1395,6 @@
 
         renderUserVehicles();
 
-        // Admin Table with Quick Actions
         document.getElementById('adminVehiclesTable').innerHTML = allVehicles.map(v => `
             <tr>
                 <td><strong>${v.id}</strong></td>
