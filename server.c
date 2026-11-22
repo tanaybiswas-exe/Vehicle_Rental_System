@@ -43,7 +43,8 @@ typedef struct {
     char start_date[30];
     char end_date[30];
     double total_cost;
-    char status[20]; // "Active", "Returned", "Late"
+    char payment_method[30];
+    char status[20]; // "Active", "Returned"
 } Rental;
 
 // --- Utility & Logging ---
@@ -521,14 +522,19 @@ void delete_vehicle(const char *body, char *response_json) {
     }
 }
 
-// --- Rental Booking APIs ---
+// --- Rental Booking & Payment APIs ---
 
 void book_vehicle(const char *body, char *response_json) {
-    char email[100], vehicle_id[20], start_date[30], end_date[30];
+    char email[100], vehicle_id[20], start_date[30], end_date[30], payment_method[30], cost_str[30];
     get_param(body, "email", email, sizeof(email));
     get_param(body, "vehicle_id", vehicle_id, sizeof(vehicle_id));
     get_param(body, "start_date", start_date, sizeof(start_date));
     get_param(body, "end_date", end_date, sizeof(end_date));
+    get_param(body, "payment_method", payment_method, sizeof(payment_method));
+    get_param(body, "total_cost", cost_str, sizeof(cost_str));
+
+    double total_cost = atof(cost_str);
+    if (strlen(payment_method) == 0) strcpy(payment_method, "Cash on Delivery");
 
     FILE *fp = fopen(VEHICLES_FILE, "r");
     if (!fp) {
@@ -540,7 +546,6 @@ void book_vehicle(const char *body, char *response_json) {
     Vehicle v;
     int v_found = 0;
     char v_name[100] = "";
-    double v_price = 0.0;
 
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
@@ -553,7 +558,6 @@ void book_vehicle(const char *body, char *response_json) {
                 }
                 v_found = 1;
                 strcpy(v_name, v.name);
-                v_price = v.price;
                 break;
             }
         }
@@ -589,11 +593,11 @@ void book_vehicle(const char *body, char *response_json) {
         strcpy(response_json, "{\"status\":\"error\",\"message\":\"Could not save booking.\"}");
         return;
     }
-    fprintf(rf, "%s|%s|%s|%s|%s|%s|%.2f|Active\n", rental_id, email, vehicle_id, v_name, start_date, end_date, v_price);
+    fprintf(rf, "%s|%s|%s|%s|%s|%s|%.2f|%s|Active\n", rental_id, email, vehicle_id, v_name, start_date, end_date, total_cost, payment_method);
     fclose(rf);
 
-    log_activity("VEHICLE_BOOKED", rental_id);
-    snprintf(response_json, BUFFER_SIZE, "{\"status\":\"success\",\"message\":\"Vehicle booked successfully! Rental ID: %s\"}", rental_id);
+    log_activity("VEHICLE_BOOKED_PAID", rental_id);
+    snprintf(response_json, BUFFER_SIZE, "{\"status\":\"success\",\"message\":\"Payment successful & vehicle booked! ID: %s\"}", rental_id);
 }
 
 void get_user_rentals(const char *body, char *response_json) {
@@ -607,19 +611,20 @@ void get_user_rentals(const char *body, char *response_json) {
     }
 
     strcpy(response_json, "{\"status\":\"success\",\"rentals\":[");
-    char line[400], item[500];
+    char line[500], item[600];
     Rental r;
     int first = 1;
 
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%19[^|]",
-                   r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.status) == 8) {
+        // Format: rental_id|user_email|vehicle_id|vehicle_name|start_date|end_date|total_cost|payment_method|status
+        if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
+                   r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
             if (strcmp(r.user_email, email) == 0) {
                 if (!first) strcat(response_json, ",");
                 snprintf(item, sizeof(item),
-                         "{\"rental_id\":\"%s\",\"vehicle_id\":\"%s\",\"vehicle_name\":\"%s\",\"start_date\":\"%s\",\"end_date\":\"%s\",\"total_cost\":%.2f,\"status\":\"%s\"}",
-                         r.rental_id, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, r.total_cost, r.status);
+                         "{\"rental_id\":\"%s\",\"vehicle_id\":\"%s\",\"vehicle_name\":\"%s\",\"start_date\":\"%s\",\"end_date\":\"%s\",\"total_cost\":%.2f,\"payment_method\":\"%s\",\"status\":\"%s\"}",
+                         r.rental_id, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, r.total_cost, r.payment_method, r.status);
                 strcat(response_json, item);
                 first = 0;
             }
@@ -636,16 +641,16 @@ void return_vehicle(const char *body, char *response_json) {
 
     FILE *rf = fopen(RENTALS_FILE, "r");
     FILE *temp_r = fopen("temp_r.txt", "w");
-    char line[400];
+    char line[500];
     Rental r;
     while (fgets(line, sizeof(line), rf)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%19[^|]",
-                   r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.status) == 8) {
+        if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
+                   r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
             if (strcmp(r.rental_id, rental_id) == 0) {
                 strcpy(r.status, "Returned");
             }
-            fprintf(temp_r, "%s|%s|%s|%s|%s|%s|%.2f|%s\n", r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, r.total_cost, r.status);
+            fprintf(temp_r, "%s|%s|%s|%s|%s|%s|%.2f|%s|%s\n", r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, r.total_cost, r.payment_method, r.status);
         }
     }
     fclose(rf);
@@ -680,11 +685,11 @@ void get_analytics(char *response_json) {
 
     FILE *rf = fopen(RENTALS_FILE, "r");
     if (rf) {
-        char line[400];
+        char line[500];
         Rental r;
         while (fgets(line, sizeof(line), rf)) {
-            if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%19[^|]",
-                       r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.status) == 8) {
+            if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
+                       r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
                 if (strcmp(r.status, "Active") == 0) active_rentals++;
                 total_revenue += r.total_cost;
             }
@@ -710,13 +715,14 @@ void get_analytics(char *response_json) {
 void export_csv(SOCKET client) {
     FILE *rf = fopen(RENTALS_FILE, "r");
     if (!rf) {
-        send_response_text(client, "text/plain", "No rentals data.");
+        char header[256];
+        snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nNo data");
+        send(client, header, (int)strlen(header), 0);
         return;
     }
-    char csv_data[10000] = "RentalID,UserEmail,VehicleID,VehicleName,StartDate,EndDate,TotalCost,Status\n";
-    char line[400];
+    char csv_data[10000] = "RentalID,UserEmail,VehicleID,VehicleName,StartDate,EndDate,TotalCost,PaymentMethod,Status\n";
+    char line[500];
     while (fgets(line, sizeof(line), rf)) {
-        // replace '|' with ','
         for(int i=0; line[i]; i++) if(line[i] == '|') line[i] = ',';
         strcat(csv_data, line);
     }
@@ -745,10 +751,6 @@ void send_response(SOCKET client, const char *content_type, const char *body) {
              content_type, body_len);
     send(client, header, (int)strlen(header), 0);
     send(client, body, body_len, 0);
-}
-
-void send_response_text(SOCKET client, const char *content_type, const char *body) {
-    send_response(client, content_type, body);
 }
 
 void serve_html(SOCKET client) {
