@@ -753,23 +753,25 @@ void send_response(SOCKET client, const char *content_type, const char *body) {
     send(client, body, body_len, 0);
 }
 
-void serve_html(SOCKET client) {
-    FILE *fp = fopen("index.html", "rb");
+void serve_file(SOCKET client, const char *filename, const char *content_type) {
+    FILE *fp = fopen(filename, "rb");
     if (!fp) {
-        send_response(client, "text/plain", "Error: index.html not found.");
+        char err[256];
+        snprintf(err, sizeof(err), "Error: %s not found.", filename);
+        send_response(client, "text/plain", err);
         return;
     }
     fseek(fp, 0, SEEK_END);
     long fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *html = (char *)malloc(fsize + 1);
-    fread(html, 1, fsize, fp);
+    char *data = (char *)malloc(fsize + 1);
+    fread(data, 1, fsize, fp);
     fclose(fp);
-    html[fsize] = '\0';
+    data[fsize] = '\0';
 
-    send_response(client, "text/html", html);
-    free(html);
+    send_response(client, content_type, data);
+    free(data);
 }
 
 int main() {
@@ -809,7 +811,11 @@ int main() {
             body = body ? body + 4 : "";
 
             if (strncmp(buffer, "GET / ", 6) == 0 || strncmp(buffer, "GET /index.html", 15) == 0) {
-                serve_html(client_fd);
+                serve_file(client_fd, "index.html", "text/html");
+            } else if (strncmp(buffer, "GET /style.css", 14) == 0) {
+                serve_file(client_fd, "style.css", "text/css");
+            } else if (strncmp(buffer, "GET /app.js", 11) == 0) {
+                serve_file(client_fd, "app.js", "application/javascript");
             } else if (strncmp(buffer, "GET /api/export-csv", 19) == 0) {
                 export_csv(client_fd);
             } else if (strncmp(buffer, "POST /api/register", 18) == 0) {
