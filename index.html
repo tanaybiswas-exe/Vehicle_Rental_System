@@ -4,170 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DriveCore™ — Executive Mobility & Fleet OS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #090d16;
-            --bg-page: #f4f6fb;
-            --card: #ffffff;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --accent: #6366f1;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --success-soft: #ecfdf5;
-            --danger: #ef4444;
-            --danger-soft: #fef2f2;
-            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
-            --shadow-md: 0 10px 30px -5px rgba(15, 23, 42, 0.07);
-            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-        }
-
-        [data-theme="dark"] {
-            --bg-dark: #030712;
-            --bg-page: #0f172a;
-            --card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --success-soft: rgba(16, 185, 129, 0.15);
-            --danger-soft: rgba(239, 68, 68, 0.15);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.2s, color 0.2s; }
-        body { background: var(--bg-page); color: var(--text-main); min-height: 100vh; }
-        .hidden { display: none !important; }
-
-        .toast {
-            position: fixed; top: 24px; right: 24px; z-index: 9999;
-            padding: 14px 20px; border-radius: 12px; font-size: 0.9rem; font-weight: 600;
-            display: flex; align-items: center; gap: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-            transform: translateY(-140%); opacity: 0; transition: all 0.35s ease; max-width: 400px;
-        }
-        .toast.show { transform: translateY(0); opacity: 1; }
-        .toast.success { background: #0f172a; color: #f8fafc; border: 1px solid #334155; }
-        .toast.success .toast-dot { background: var(--success); }
-        .toast.error { background: #450a0a; color: #fef2f2; border: 1px solid #991b1b; }
-        .toast.error .toast-dot { background: var(--danger); }
-        .toast-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-
-        .auth-shell { min-height: 100vh; display: grid; grid-template-columns: 1.05fr 1fr; background: var(--bg-dark); }
-        .auth-showcase {
-            position: relative; padding: 3.5rem 4rem; display: flex; flex-direction: column; justify-content: space-between;
-            color: white; background: radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.28) 0%, transparent 45%), linear-gradient(160deg, #090d16 0%, #0f172a 100%);
-        }
-        .logo-lockup { display: flex; align-items: center; gap: 12px; z-index: 2; }
-        .logo-mark { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: grid; place-items: center; }
-        .logo-text { font-size: 1.45rem; font-weight: 800; color: white; }
-        .logo-text span { color: #60a5fa; }
-        .showcase-hero h1 { font-size: 2.85rem; line-height: 1.15; font-weight: 800; margin-bottom: 1.2rem; color: white; }
-        .showcase-hero p { color: #94a3b8; font-size: 1.02rem; line-height: 1.65; }
-
-        .auth-panel { background: var(--card); display: flex; align-items: center; justify-content: center; padding: 2.5rem; border-top-left-radius: 28px; border-bottom-left-radius: 28px; box-shadow: var(--shadow-lg); overflow-y: auto; }
-        .auth-container { width: 100%; max-width: 440px; }
-        .segmented-control { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--border); padding: 5px; border-radius: 12px; margin-bottom: 2rem; }
-        .segmented-control button { border: none; background: transparent; padding: 11px; border-radius: 9px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
-        .segmented-control button.active { background: var(--card); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-        .form-title h2 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.35rem; }
-        .form-title p { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 1.5rem; }
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .field { margin-bottom: 1.15rem; }
-        .field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
-        .input-wrap { position: relative; }
-        input, select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.93rem; background: var(--bg-page); color: var(--text-main); }
-        input:focus, select:focus { outline: none; background: var(--card); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.12); }
-        input:disabled { background: var(--border); color: var(--text-muted); }
-        .eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 0.78rem; font-weight: 700; cursor: pointer; }
-
-        .btn-primary { width: 100%; padding: 13px; background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(37,99,235,0.25); }
-        .btn-danger { background: var(--danger); box-shadow: 0 6px 16px rgba(239,68,68,0.25); }
-        .btn-outline { background: var(--card); color: var(--text-main); border: 1.5px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-
-        .app-shell { display: flex; min-height: 100vh; }
-        .sidebar { width: 270px; background: var(--bg-dark); color: white; padding: 1.75rem 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid var(--border); }
-        .nav-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; font-weight: 700; margin: 2rem 0 0.75rem 0.75rem; }
-        .nav-menu { display: flex; flex-direction: column; gap: 4px; }
-        .nav-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px; border: none; border-radius: 10px; background: transparent; color: #94a3b8; font-size: 0.9rem; font-weight: 600; cursor: pointer; text-align: left; }
-        .nav-btn:hover { background: rgba(255,255,255,0.06); color: white; }
-        .nav-btn.active { background: linear-gradient(135deg, var(--primary), #1d4ed8); color: white; box-shadow: 0 4px 12px rgba(37,99,235,0.35); }
-
-        .workspace { flex: 1; padding: 2rem 2.75rem; overflow-y: auto; }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .header-bar h1 { font-size: 1.65rem; font-weight: 800; }
-        .header-bar p { color: var(--text-muted); font-size: 0.88rem; margin-top: 2px; }
-
-        .header-actions { display: flex; align-items: center; gap: 12px; }
-        .theme-toggle-btn { background: var(--card); border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px; font-weight: 600; cursor: pointer; font-size: 0.85rem; color: var(--text-main); box-shadow: var(--shadow-sm); }
-
-        .profile-badge { display: flex; align-items: center; gap: 12px; background: var(--card); padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-        .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; display: grid; place-items: center; font-weight: 800; }
-
-        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
-        .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; }
-        .kpi-card small { color: var(--text-muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
-        .kpi-card h3 { font-size: 1.9rem; font-weight: 800; margin-top: 6px; }
-        .kpi-icon { width: 46px; height: 46px; border-radius: 12px; background: rgba(37, 99, 235, 0.1); color: var(--primary); display: grid; place-items: center; font-size: 1.3rem; }
-
-        .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 1.5rem; }
-        .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-pill { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: 0.82rem; font-weight: 600; color: var(--text-muted); cursor: pointer; }
-        .filter-pill.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        .fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
-        .vehicle-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between; }
-        .vc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .vc-id { font-size: 0.78rem; font-weight: 700; background: var(--border); padding: 4px 10px; border-radius: 6px; color: var(--text-main); }
-        .vc-icon-box { height: 80px; background: linear-gradient(135deg, var(--bg-page), rgba(37,99,235,0.05)); border-radius: 12px; display: grid; place-items: center; font-size: 2.4rem; margin-bottom: 1rem; }
-        .vc-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
-        .vc-type { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 1.2rem; }
-        .vc-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); }
-        .vc-price strong { font-size: 1.15rem; font-weight: 800; color: var(--primary); }
-        .vc-price span { font-size: 0.78rem; color: var(--text-muted); }
-
-        .surface-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.6rem; box-shadow: var(--shadow-sm); margin-bottom: 1.5rem; }
-        .surface-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; }
-
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px 16px; background: var(--bg-page); color: var(--text-muted); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-        td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
-        tr:hover td { background: var(--bg-page); }
-
-        .status-badge { padding: 5px 11px; border-radius: 999px; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
-        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
-        .badge-avail { background: var(--success-soft); color: var(--success); }
-        .badge-avail::before { background: var(--success); }
-        .badge-rented { background: var(--danger-soft); color: var(--danger); }
-        .badge-rented::before { background: var(--danger); }
-        .badge-maint { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-        .badge-maint::before { background: #f59e0b; }
-
-        .btn-mini { padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text-main); cursor: pointer; }
-        .btn-mini:hover { background: var(--bg-page); }
-        .btn-mini.del { color: var(--danger); border-color: #fecaca; }
-
-        .security-confirm-box { background: var(--bg-page); border: 1.5px solid var(--border); border-radius: 12px; padding: 1.15rem; margin-top: 0.5rem; margin-bottom: 1.25rem; }
-        .recovery-card { margin-top: 1.5rem; background: var(--danger-soft); border: 1.5px solid var(--danger); border-radius: 12px; padding: 1.3rem; }
-        .recovery-card h4 { color: var(--danger); font-size: 0.95rem; margin-bottom: 6px; }
-        .question-pill { background: var(--card); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; color: var(--text-main); margin: 10px 0; }
-
-        /* Booking & Payment Modal */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 999; backdrop-filter: blur(4px); }
-        .modal-card { background: var(--card); padding: 2rem; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
-
-        .payment-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 1.25rem; }
-        .pay-option { border: 1.5px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; font-weight: 600; font-size: 0.88rem; cursor: pointer; background: var(--bg-page); color: var(--text-main); }
-        .pay-option.selected { border-color: var(--primary); background: rgba(37,99,235,0.08); color: var(--primary); }
-
-        @media (max-width: 920px) {
-            .auth-shell { grid-template-columns: 1fr; }
-            .auth-showcase { display: none; }
-            .app-shell { flex-direction: column; }
-            .sidebar { width: 100%; }
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body data-theme="light">
 
@@ -176,8 +16,8 @@
 <!-- BOOKING & PAYMENT MODAL -->
 <div id="bookingModal" class="modal-overlay hidden">
     <div class="modal-card">
-        <h3 id="modalVehTitle" style="margin-bottom: 0.3rem;">Book & Pay</h3>
-        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.1rem;">Select rental dates and secure payment gateway.</p>
+        <h3 id="modalVehTitle" style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.25rem;">Book & Pay</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.2rem;">Select rental dates and choose your preferred payment method.</p>
         <form onsubmit="confirmBooking(event)">
             <input type="hidden" id="modalVehId">
             <div class="input-grid" style="margin-bottom: 0;">
@@ -191,16 +31,16 @@
                 </div>
             </div>
 
-            <div style="background: var(--bg-page); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="summary-banner">
                 <div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total Payable:</div>
-                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);" id="modalTotalCost">0 BDT</div>
+                    <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Total Payable</div>
+                    <div class="mono" style="font-size: 1.3rem; font-weight: 800; color: var(--primary);" id="modalTotalCost">0 BDT</div>
                 </div>
-                <div style="font-size: 0.8rem; font-weight: 700; color: var(--success);" id="calcDaysCount">0 days</div>
+                <div class="mono" style="font-size: 0.8rem; font-weight: 700; color: var(--success); background: var(--success-soft); padding: 4px 10px; border-radius: 999px;" id="calcDaysCount">0 days</div>
             </div>
 
             <div class="field" style="margin-bottom: 0.8rem;">
-                <label>Select Payment Method</label>
+                <label>Payment Gateway</label>
                 <div class="payment-options">
                     <div class="pay-option selected" onclick="selectPayment('bKash', this)">bKash 📱</div>
                     <div class="pay-option" onclick="selectPayment('Nagad', this)">Nagad ⚡</div>
@@ -209,7 +49,7 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 1.2rem;">
+            <div style="display: flex; gap: 10px; margin-top: 1.35rem;">
                 <button type="submit" class="btn-primary">Pay & Confirm Booking</button>
                 <button type="button" class="btn-outline" onclick="closeBookingModal()">Cancel</button>
             </div>
@@ -225,11 +65,25 @@
             <div class="logo-text">Drive<span>Core</span></div>
         </div>
         <div class="showcase-hero">
-            <div style="color: #93c5fd; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">⚡ C-Engine Native Platform</div>
+            <div class="showcase-pill">⚡ C-Engine Native Platform</div>
             <h1>Smart Fleet Management & Bookings.</h1>
-            <p>Seamlessly browse, book, and manage vehicle rentals with permanent C file storage persistence and simulated payments.</p>
+            <p>Browse available vehicles, schedule rentals with instant cost calculation, complete simulated payments, and manage fleet operations backed by C file persistence.</p>
+            <div class="showcase-highlights">
+                <div class="highlight-chip">
+                    <strong class="mono">C + HTTP</strong>
+                    <span>Native Socket Engine</span>
+                </div>
+                <div class="highlight-chip">
+                    <strong class="mono">4 Gateways</strong>
+                    <span>bKash, Nagad, Card, COD</span>
+                </div>
+                <div class="highlight-chip">
+                    <strong class="mono">Audit Log</strong>
+                    <span>Timestamped Activity</span>
+                </div>
+            </div>
         </div>
-        <div style="font-size: 0.8rem; color: #64748b;">DriveCore v3.2 &bull; Enterprise Gateway Edition</div>
+        <div class="mono" style="font-size: 0.78rem; color: #64748b;">DriveCore v3.2 &bull; Executive Mobility Suite</div>
     </div>
 
     <div class="auth-panel">
@@ -262,7 +116,7 @@
 
                 <div id="resetBox" class="recovery-card hidden">
                     <h4>🔒 Security Lockout Active (5 Failed Attempts)</h4>
-                    <p style="font-size: 0.83rem;">Verify your security question to reset password and unlock access.</p>
+                    <p style="font-size: 0.83rem; color: var(--text-secondary);">Verify your security question to reset password and unlock access.</p>
                     <div class="question-pill" id="secQuestionText"></div>
                     <form onsubmit="handlePasswordReset(event)">
                         <div class="field">
@@ -272,7 +126,7 @@
                         <div class="input-grid">
                             <div class="field">
                                 <label>New Password</label>
-                                <input type="password" id="resetNewPass" required placeholder="6+ chars, letter, num, symbol">
+                                <input type="password" id="resetNewPass" required placeholder="6+ chars, A-z, 0-9, symbol">
                             </div>
                             <div class="field">
                                 <label>Confirm Password</label>
@@ -317,7 +171,7 @@
     <aside class="sidebar">
         <div>
             <div class="logo-lockup">
-                <div class="logo-mark" style="width: 36px; height: 36px;">🚘</div>
+                <div class="logo-mark" style="width: 36px; height: 36px; font-size: 1rem;">🚘</div>
                 <div class="logo-text" style="font-size: 1.25rem;">Drive<span>Core</span></div>
             </div>
             <div class="nav-label">Customer Portal</div>
@@ -327,7 +181,7 @@
                 <button class="nav-btn" onclick="showUserTab('uProfile', 'My Profile', 'Manage profile & security password', this)">👤 My Profile</button>
             </nav>
         </div>
-        <button class="btn-primary btn-danger" style="padding: 10px;" onclick="logout()">Sign Out</button>
+        <button class="btn-primary btn-danger" style="padding: 10.5px;" onclick="logout()">Sign Out</button>
     </aside>
 
     <main class="workspace">
@@ -350,12 +204,12 @@
 
         <div class="kpi-row">
             <div class="kpi-card">
-                <div><small>Available Now</small><h3 id="statUserAvail">0</h3></div>
+                <div><small>Available Now</small><h3 class="mono" id="statUserAvail">0</h3></div>
                 <div class="kpi-icon">🚘</div>
             </div>
             <div class="kpi-card">
-                <div><small>Active Bookings</small><h3 id="statUserActiveBookings" style="color: var(--primary);">0</h3></div>
-                <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--accent);">📑</div>
+                <div><small>Active Bookings</small><h3 class="mono" id="statUserActiveBookings" style="color: var(--primary);">0</h3></div>
+                <div class="kpi-icon" style="background: rgba(79, 70, 229, 0.12); color: var(--accent);">📑</div>
             </div>
         </div>
 
@@ -368,8 +222,8 @@
                     <button class="filter-pill" onclick="filterFleet('SUV', this)">SUVs</button>
                     <button class="filter-pill" onclick="filterFleet('Bike', this)">Bikes</button>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <select id="sortFleetSelect" onchange="sortFleet()" style="padding: 7px 12px; font-size: 0.82rem; border-radius: 999px;">
+                <div style="display: flex; gap: 8px; min-width: 185px;">
+                    <select id="sortFleetSelect" onchange="sortFleet()" style="padding: 8px 14px; font-size: 0.82rem; font-weight: 700; border-radius: 999px;">
                         <option value="default">Sort by Rate</option>
                         <option value="lowHigh">Price: Low to High</option>
                         <option value="highLow">Price: High to Low</option>
@@ -383,7 +237,17 @@
         <div id="uBookings" class="surface-card hidden">
             <h3>My Rental History & Payments</h3>
             <table>
-                <thead><tr><th>Rental ID</th><th>Vehicle</th><th>Dates</th><th>Total Cost</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Rental ID</th>
+                        <th>Vehicle</th>
+                        <th>Dates</th>
+                        <th>Total Cost</th>
+                        <th>Gateway</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
                 <tbody id="userBookingsTable"></tbody>
             </table>
         </div>
@@ -393,17 +257,17 @@
             <div class="surface-card">
                 <h3>Registered Account Details</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Full Name</small>
-                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profName"></div>
+                    <div class="info-tile">
+                        <small>Full Name</small>
+                        <div id="profName"></div>
                     </div>
-                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Email Address</small>
-                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profEmail"></div>
+                    <div class="info-tile">
+                        <small>Email Address</small>
+                        <div id="profEmail"></div>
                     </div>
-                    <div style="background: var(--bg-page); padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <small style="color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Phone Number</small>
-                        <div style="font-size: 1.08rem; font-weight: 700; margin-top: 4px;" id="profPhone"></div>
+                    <div class="info-tile">
+                        <small>Phone Number</small>
+                        <div class="mono" id="profPhone"></div>
                     </div>
                 </div>
             </div>
@@ -448,7 +312,7 @@
     <aside class="sidebar">
         <div>
             <div class="logo-lockup">
-                <div class="logo-mark" style="background:linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
+                <div class="logo-mark" style="width: 36px; height: 36px; font-size: 1rem; background: linear-gradient(135deg, #f59e0b, #d97706);">⚡</div>
                 <div class="logo-text" style="font-size: 1.25rem;">AdminOS</div>
             </div>
             <div class="nav-label">Management Console</div>
@@ -460,7 +324,7 @@
                 <button class="nav-btn" onclick="showAdminTab('aUpdate', 'Update Vehicle', 'Modify vehicle info', this)">✏️ Update Vehicle</button>
             </nav>
         </div>
-        <button class="btn-primary btn-danger" style="padding: 10px;" onclick="logout()">Exit Admin</button>
+        <button class="btn-primary btn-danger" style="padding: 10.5px;" onclick="logout()">Exit Admin</button>
     </aside>
 
     <main class="workspace">
@@ -472,35 +336,38 @@
             <div class="header-actions">
                 <button class="theme-toggle-btn" onclick="toggleTheme()">🌓 Theme</button>
                 <div class="profile-badge">
-                    <div class="avatar" style="background: #0f172a;">A</div>
-                    <div><div style="font-size: 0.88rem; font-weight: 700;">Administrator</div><div style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">● Root</div></div>
+                    <div class="avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">A</div>
+                    <div>
+                        <div style="font-size: 0.88rem; font-weight: 700;">Administrator</div>
+                        <div style="font-size: 0.72rem; color: var(--primary); font-weight: 700;">● Root</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="kpi-row">
             <div class="kpi-card">
-                <div><small>Total Revenue</small><h3 id="statRevenue" style="color: var(--success);">0 BDT</h3></div>
+                <div><small>Total Revenue</small><h3 class="mono" id="statRevenue" style="color: var(--success);">0 BDT</h3></div>
                 <div class="kpi-icon" style="background: var(--success-soft); color: var(--success);">💰</div>
             </div>
             <div class="kpi-card">
-                <div><small>Active Rentals</small><h3 id="statActiveRentals">0</h3></div>
+                <div><small>Active Rentals</small><h3 class="mono" id="statActiveRentals">0</h3></div>
                 <div class="kpi-icon">📑</div>
             </div>
             <div class="kpi-card">
-                <div><small>Total Fleet</small><h3 id="statTotalFleet" style="color: var(--primary);">0</h3></div>
+                <div><small>Total Fleet</small><h3 class="mono" id="statTotalFleet" style="color: var(--primary);">0</h3></div>
                 <div class="kpi-icon">🚗</div>
             </div>
         </div>
 
         <!-- TAB 1: Analytics -->
         <div id="aAnalytics" class="surface-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3>Executive Fleet Summary & Reports</h3>
-                <a href="/api/export-csv" class="btn-outline" style="text-decoration: none; font-size: 0.85rem;" download="rentals_report.csv">📥 Export Rentals CSV</a>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem;">
+                <h3 style="margin-bottom: 0;">Executive Fleet Summary & Reports</h3>
+                <a href="/api/export-csv" class="btn-outline" style="text-decoration: none; font-size: 0.84rem;" download="rentals_report.csv">📥 Export Rentals CSV</a>
             </div>
-            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                All financials are calculated in real-time from paid bookings stored in <code>rentals.txt</code>. System activities and audit logs are recorded in <code>activity.log</code>.
+            <p style="color: var(--text-muted); font-size: 0.93rem; line-height: 1.65;">
+                All financials are calculated in real-time from paid bookings stored in <code class="mono">rentals.txt</code>. System activities and audit logs are recorded in <code class="mono">activity.log</code>.
             </p>
         </div>
 
@@ -508,7 +375,16 @@
         <div id="aVehicles" class="surface-card hidden">
             <h3>Complete Fleet Inventory</h3>
             <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Rate/Day</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Rate/Day</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
                 <tbody id="adminVehiclesTable"></tbody>
             </table>
         </div>
@@ -517,7 +393,13 @@
         <div id="aUsers" class="surface-card hidden">
             <h3>Registered Customers</h3>
             <table>
-                <thead><tr><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                    </tr>
+                </thead>
                 <tbody id="adminUsersTable"></tbody>
             </table>
         </div>
@@ -538,7 +420,7 @@
                         <option value="Under Maintenance">Under Maintenance</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Save Vehicle</button>
+                <button type="submit" class="btn-primary" style="width: auto; padding: 11px 22px;">Save Vehicle</button>
             </form>
         </div>
 
@@ -559,398 +441,12 @@
                         <option value="Under Maintenance">Under Maintenance</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-primary" style="width:auto; padding:10px 20px;">Update</button>
+                <button type="submit" class="btn-primary" style="width: auto; padding: 11px 22px;">Update</button>
             </form>
         </div>
     </main>
 </div>
 
-<script>
-    let currentUser = null;
-    let allVehicles = [];
-    let currentCategory = 'All';
-    let selectedVehicleForBooking = null;
-    let selectedPaymentMethod = 'bKash';
-    let calculatedTotalValue = 0;
-
-    function toggleTheme() {
-        const body = document.body;
-        const current = body.getAttribute('data-theme');
-        body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
-    }
-
-    function showToast(msg, type = 'success') {
-        const toast = document.getElementById('toast');
-        document.getElementById('toastMsg').textContent = msg;
-        toast.className = `toast ${type} show`;
-        setTimeout(() => toast.classList.remove('show'), 4000);
-    }
-
-    function togglePass(id, btn) {
-        const el = document.getElementById(id);
-        el.type = el.type === 'password' ? 'text' : 'password';
-        btn.textContent = el.type === 'password' ? 'SHOW' : 'HIDE';
-    }
-
-    function encodeForm(data) {
-        return Object.keys(data).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(data[k])).join('&');
-    }
-
-    async function postAPI(url, data) {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: encodeForm(data)
-        });
-        return res.json();
-    }
-
-    function switchAuthTab(tabId, btn) {
-        ['userLogin', 'userReg'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(tabId).classList.remove('hidden');
-        document.querySelectorAll('.segmented-control button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    function syncProfileUI() {
-        if (!currentUser) return;
-        document.getElementById('topUserName').textContent = currentUser.name;
-        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
-        document.getElementById('profName').textContent = currentUser.name;
-        document.getElementById('profEmail').textContent = currentUser.email;
-        document.getElementById('profPhone').textContent = currentUser.phone;
-
-        document.getElementById('editProfName').value = currentUser.name;
-        document.getElementById('editProfPhone').value = currentUser.phone;
-        document.getElementById('editProfEmail').value = currentUser.email;
-        document.getElementById('editProfNewPass').value = '';
-        document.getElementById('editProfCurrentPass').value = '';
-    }
-
-    async function handleRegister(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/register', {
-            name: document.getElementById('regName').value,
-            email: document.getElementById('regEmail').value,
-            phone: document.getElementById('regPhone').value,
-            password: document.getElementById('regPass').value,
-            sec_q: document.getElementById('regSecQ').value,
-            sec_a: document.getElementById('regSecA').value
-        });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') {
-            e.target.reset();
-            switchAuthTab('userLogin', document.querySelectorAll('.segmented-control button')[0]);
-        }
-    }
-
-    async function handleUserLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPass').value;
-
-        if (email.toLowerCase() === 'admin@rental.com') {
-            const adminRes = await postAPI('/api/admin-login', { email, password });
-            if (adminRes.status === 'success') {
-                document.getElementById('authSection').classList.add('hidden');
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                showToast('Admin session active.', 'success');
-                loadAdminData();
-                return;
-            } else {
-                showToast('Invalid admin credentials.', 'error');
-                return;
-            }
-        }
-
-        const res = await postAPI('/api/login', { email, password });
-        if (res.status === 'success') {
-            currentUser = res.user;
-            document.getElementById('resetBox').classList.add('hidden');
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('userDashboard').classList.remove('hidden');
-            syncProfileUI();
-            showToast(`Welcome back, ${currentUser.name}!`, 'success');
-            loadUserData();
-        } else if (res.status === 'locked') {
-            showToast(res.message, 'error');
-            document.getElementById('secQuestionText').textContent = res.sec_q;
-            document.getElementById('resetBox').classList.remove('hidden');
-        } else {
-            showToast(res.message, 'error');
-        }
-    }
-
-    async function handleProfileUpdate(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/update-profile', {
-            email: currentUser.email,
-            name: document.getElementById('editProfName').value.trim(),
-            phone: document.getElementById('editProfPhone').value.trim(),
-            new_pass: document.getElementById('editProfNewPass').value,
-            current_pass: document.getElementById('editProfCurrentPass').value
-        });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success' && res.user) {
-            currentUser = res.user;
-            syncProfileUI();
-        }
-    }
-
-    async function handlePasswordReset(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/reset-password', {
-            email: document.getElementById('loginEmail').value,
-            sec_a: document.getElementById('resetAnswer').value,
-            new_pass: document.getElementById('resetNewPass').value,
-            confirm_pass: document.getElementById('resetConfirmPass').value
-        });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') {
-            document.getElementById('resetBox').classList.add('hidden');
-            e.target.reset();
-        }
-    }
-
-    function logout() {
-        currentUser = null;
-        document.getElementById('userDashboard').classList.add('hidden');
-        document.getElementById('adminDashboard').classList.add('hidden');
-        document.getElementById('authSection').classList.remove('hidden');
-        showToast('Signed out safely.', 'success');
-    }
-
-    function showUserTab(tabId, title, sub, btn) {
-        ['uAvail', 'uBookings', 'uProfile'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(tabId).classList.remove('hidden');
-        document.getElementById('userPageTitle').textContent = title;
-        document.getElementById('userPageSub').textContent = sub;
-        document.querySelectorAll('#userDashboard .nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if (tabId === 'uAvail') loadUserData();
-        if (tabId === 'uBookings') loadUserBookings();
-        if (tabId === 'uProfile') syncProfileUI();
-    }
-
-    function showAdminTab(tabId, title, sub, btn) {
-        ['aAnalytics', 'aVehicles', 'aUsers', 'aAdd', 'aUpdate'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(tabId).classList.remove('hidden');
-        document.getElementById('adminPageTitle').textContent = title;
-        document.getElementById('adminPageSub').textContent = sub;
-        document.querySelectorAll('#adminDashboard .nav-btn').forEach(b => b.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-        loadAdminData();
-    }
-
-    function getEmoji(type) {
-        const t = type.toLowerCase();
-        if (t.includes('bike')) return '🏍️';
-        if (t.includes('suv')) return '🚙';
-        return '🚘';
-    }
-
-    function filterFleet(cat, btn) {
-        currentCategory = cat;
-        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        renderFleet();
-    }
-
-    function sortFleet() {
-        const mode = document.getElementById('sortFleetSelect').value;
-        if (mode === 'lowHigh') allVehicles.sort((a,b) => a.price - b.price);
-        else if (mode === 'highLow') allVehicles.sort((a,b) => b.price - a.price);
-        renderFleet();
-    }
-
-    function renderFleet() {
-        const availList = allVehicles.filter(v => v.status === 'Available' &&
-            (currentCategory === 'All' || v.type.toLowerCase() === currentCategory.toLowerCase()));
-
-        document.getElementById('userCardsGrid').innerHTML = availList.map(v => `
-            <div class="vehicle-card">
-                <div>
-                    <div class="vc-top">
-                        <span class="vc-id">${v.id}</span>
-                        <span class="status-badge badge-avail">${v.status}</span>
-                    </div>
-                    <div class="vc-icon-box">${getEmoji(v.type)}</div>
-                    <div class="vc-title">${v.name}</div>
-                    <div class="vc-type">${v.type} Category</div>
-                </div>
-                <div class="vc-footer">
-                    <div class="vc-price"><strong>${v.price.toFixed(0)} BDT</strong> <span>/ day</span></div>
-                    <button class="btn-primary" style="width: auto; padding: 7px 14px; font-size: 0.82rem;" onclick="openBookingModal('${v.id}', '${v.name}', ${v.price})">Book & Pay</button>
-                </div>
-            </div>
-        `).join('') || '<p style="color:var(--text-muted);">No available vehicles in this category.</p>';
-    }
-
-    async function loadUserData() {
-        const res = await fetch('/api/vehicles');
-        const data = await res.json();
-        allVehicles = data.vehicles || [];
-
-        const availList = allVehicles.filter(v => v.status === 'Available');
-        document.getElementById('statUserAvail').textContent = availList.length;
-
-        const bRes = await postAPI('/api/rentals/user', { email: currentUser.email });
-        const activeB = (bRes.rentals || []).filter(r => r.status === 'Active');
-        document.getElementById('statUserActiveBookings').textContent = activeB.length;
-
-        renderFleet();
-    }
-
-    function openBookingModal(id, name, price) {
-        selectedVehicleForBooking = { id, name, price };
-        selectedPaymentMethod = 'bKash';
-        document.querySelectorAll('.pay-option').forEach((el, idx) => {
-            if (idx === 0) el.classList.add('selected');
-            else el.classList.remove('selected');
-        });
-
-        document.getElementById('modalVehTitle').textContent = `Book: ${name} (${id})`;
-        document.getElementById('modalVehId').value = id;
-        document.getElementById('bookStartDate').value = '';
-        document.getElementById('bookEndDate').value = '';
-        document.getElementById('modalTotalCost').textContent = '0 BDT';
-        document.getElementById('calcDaysCount').textContent = '0 days';
-        document.getElementById('bookingModal').classList.remove('hidden');
-    }
-
-    function closeBookingModal() {
-        document.getElementById('bookingModal').classList.add('hidden');
-    }
-
-    function selectPayment(method, el) {
-        selectedPaymentMethod = method;
-        document.querySelectorAll('.pay-option').forEach(p => p.classList.remove('selected'));
-        el.classList.add('selected');
-    }
-
-    function calculateCost() {
-        const start = new Date(document.getElementById('bookStartDate').value);
-        const end = new Date(document.getElementById('bookEndDate').value);
-        if (start && end && end >= start) {
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            calculatedTotalValue = diffDays * selectedVehicleForBooking.price;
-            document.getElementById('modalTotalCost').textContent = `${calculatedTotalValue.toLocaleString()} BDT`;
-            document.getElementById('calcDaysCount').textContent = `${diffDays} days`;
-        } else {
-            calculatedTotalValue = 0;
-            document.getElementById('modalTotalCost').textContent = '0 BDT';
-            document.getElementById('calcDaysCount').textContent = '0 days';
-        }
-    }
-
-    async function confirmBooking(e) {
-        e.preventDefault();
-        if (calculatedTotalValue <= 0) {
-            showToast('Please select valid rental dates.', 'error');
-            return;
-        }
-
-        const res = await postAPI('/api/rentals/book', {
-            email: currentUser.email,
-            vehicle_id: selectedVehicleForBooking.id,
-            start_date: document.getElementById('bookStartDate').value,
-            end_date: document.getElementById('bookEndDate').value,
-            payment_method: selectedPaymentMethod,
-            total_cost: calculatedTotalValue
-        });
-
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') {
-            closeBookingModal();
-            loadUserData();
-        }
-    }
-
-    async function loadUserBookings() {
-        const res = await postAPI('/api/rentals/user', { email: currentUser.email });
-        const rentals = res.rentals || [];
-        document.getElementById('userBookingsTable').innerHTML = rentals.map(r => `
-            <tr>
-                <td><strong>${r.rental_id}</strong></td>
-                <td>${r.vehicle_name} (${r.vehicle_id})</td>
-                <td>${r.start_date} to ${r.end_date}</td>
-                <td><strong>${r.total_cost.toFixed(2)} BDT</strong></td>
-                <td><span style="font-weight:700; color:var(--primary);">${r.payment_method || 'bKash'}</span></td>
-                <td><span class="status-badge ${r.status === 'Active' ? 'badge-rented' : 'badge-avail'}">${r.status}</span></td>
-                <td>
-                    ${r.status === 'Active' ? `<button class="btn-mini del" onclick="returnVehicle('${r.rental_id}', '${r.vehicle_id}')">Return</button>` : 'Completed'}
-                </td>
-            </tr>
-        `).join('') || '<tr><td colspan="7">No rental history found.</td></tr>';
-    }
-
-    async function returnVehicle(rental_id, vehicle_id) {
-        if (!confirm('Confirm returning this vehicle?')) return;
-        const res = await postAPI('/api/rentals/return', { rental_id, vehicle_id });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') loadUserBookings();
-    }
-
-    async function loadAdminData() {
-        const aRes = await fetch('/api/admin/analytics');
-        const aData = await aRes.json();
-        document.getElementById('statRevenue').textContent = `${aData.revenue.toLocaleString()} BDT`;
-        document.getElementById('statActiveRentals').textContent = aData.active_rentals;
-        document.getElementById('statTotalFleet').textContent = aData.total_vehicles;
-
-        const vRes = await fetch('/api/vehicles');
-        const vData = await vRes.json();
-        document.getElementById('adminVehiclesTable').innerHTML = (vData.vehicles || []).map(v => `
-            <tr>
-                <td><strong>${v.id}</strong></td>
-                <td>${v.name}</td>
-                <td>${v.type}</td>
-                <td><strong>${v.price.toFixed(2)} BDT</strong></td>
-                <td><span class="status-badge ${v.status === 'Available' ? 'badge-avail' : (v.status === 'Rented' ? 'badge-rented' : 'badge-maint')}">${v.status}</span></td>
-                <td><button class="btn-mini del" onclick="deleteVehicle('${v.id}')">Delete</button></td>
-            </tr>
-        `).join('');
-
-        const uRes = await fetch('/api/users');
-        const uData = await uRes.json();
-        document.getElementById('adminUsersTable').innerHTML = (uData.users || []).map(u => `
-            <tr><td><strong>${u.name}</strong></td><td>${u.email}</td><td>${u.phone}</td></tr>
-        `).join('');
-    }
-
-    async function handleAddVehicle(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/vehicles/add', {
-            id: document.getElementById('addId').value.trim(),
-            name: document.getElementById('addName').value.trim(),
-            type: document.getElementById('addType').value.trim(),
-            price: document.getElementById('addPrice').value,
-            status: document.getElementById('addStatus').value
-        });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') { e.target.reset(); loadAdminData(); }
-    }
-
-    async function handleUpdateVehicle(e) {
-        e.preventDefault();
-        const res = await postAPI('/api/vehicles/update', {
-            id: document.getElementById('updId').value.trim(),
-            name: document.getElementById('updName').value.trim(),
-            type: document.getElementById('updType').value.trim(),
-            price: document.getElementById('updPrice').value,
-            status: document.getElementById('updStatus').value
-        });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') { e.target.reset(); loadAdminData(); }
-    }
-
-    async function deleteVehicle(id) {
-        if (!confirm(`Delete vehicle ${id}?`)) return;
-        const res = await postAPI('/api/vehicles/delete', { id });
-        showToast(res.message, res.status === 'success' ? 'success' : 'error');
-        if (res.status === 'success') loadAdminData();
-    }
-</script>
+<script src="/app.js"></script>
 </body>
 </html>
