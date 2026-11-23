@@ -44,7 +44,7 @@ typedef struct {
     char end_date[30];
     double total_cost;
     char payment_method[30];
-    char status[20]; // "Active", "Returned"
+    char status[20]; // "Active", "Returned", "Cancelled"
 } Rental;
 
 // --- Utility & Logging ---
@@ -138,6 +138,33 @@ void init_files() {
     } else {
         fclose(fp);
     }
+}
+
+void set_vehicle_status(const char *vehicle_id, const char *new_status) {
+    FILE *vf = fopen(VEHICLES_FILE, "r");
+    FILE *temp_v = fopen("temp_v.txt", "w");
+    if (!vf || !temp_v) {
+        if (vf) fclose(vf);
+        if (temp_v) fclose(temp_v);
+        return;
+    }
+    char line[300];
+    Vehicle v;
+    while (fgets(line, sizeof(line), vf)) {
+        line[strcspn(line, "\r\n")] = 0;
+        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
+                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+            if (strcmp(v.id, vehicle_id) == 0) {
+                strncpy(v.status, new_status, sizeof(v.status) - 1);
+                v.status[sizeof(v.status) - 1] = '\0';
+            }
+            fprintf(temp_v, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
+        }
+    }
+    fclose(vf);
+    fclose(temp_v);
+    remove(VEHICLES_FILE);
+    rename("temp_v.txt", VEHICLES_FILE);
 }
 
 // --- User Operations ---
@@ -522,7 +549,7 @@ void delete_vehicle(const char *body, char *response_json) {
     }
 }
 
-// --- Rental Booking & Payment APIs ---
+// --- Rental Booking, Payment & Lifecycle APIs ---
 
 void book_vehicle(const char *body, char *response_json) {
     char email[100], vehicle_id[20], start_date[30], end_date[30], payment_method[30], cost_str[30];
@@ -533,7 +560,16 @@ void book_vehicle(const char *body, char *response_json) {
     get_param(body, "payment_method", payment_method, sizeof(payment_method));
     get_param(body, "total_cost", cost_str, sizeof(cost_str));
 
+    if (strlen(start_date) == 0 || strlen(end_date) == 0 || strcmp(end_date, start_date) < 0) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"End date must be on or after start date.\"}");
+        return;
+    }
+
     double total_cost = atof(cost_str);
+    if (total_cost <= 0) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Invalid rental amount.\"}");
+        return;
+    }
     if (strlen(payment_method) == 0) strcpy(payment_method, "Cash on Delivery");
 
     FILE *fp = fopen(VEHICLES_FILE, "r");
@@ -569,21 +605,7 @@ void book_vehicle(const char *body, char *response_json) {
         return;
     }
 
-    // Mark vehicle as Rented
-    FILE *vf = fopen(VEHICLES_FILE, "r");
-    FILE *temp_v = fopen("temp_v.txt", "w");
-    while (fgets(line, sizeof(line), vf)) {
-        line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
-            if (strcmp(v.id, vehicle_id) == 0) strcpy(v.status, "Rented");
-            fprintf(temp_v, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
-        }
-    }
-    fclose(vf);
-    fclose(temp_v);
-    remove(VEHICLES_FILE);
-    rename("temp_v.txt", VEHICLES_FILE);
+    set_vehicle_status(vehicle_id, "Rented");
 
     char rental_id[40];
     snprintf(rental_id, sizeof(rental_id), "RNT-%u", (unsigned int)time(NULL));
@@ -617,7 +639,6 @@ void get_user_rentals(const char *body, char *response_json) {
 
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
-        // Format: rental_id|user_email|vehicle_id|vehicle_name|start_date|end_date|total_cost|payment_method|status
         if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
                    r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
             if (strcmp(r.user_email, email) == 0) {
@@ -634,13 +655,20 @@ void get_user_rentals(const char *body, char *response_json) {
     fclose(fp);
 }
 
-void return_vehicle(const char *body, char *response_json) {
+void update_rental_status(const char *body, const char *target_status, const char *log_tag, const char *success_msg, char *response_json) {
     char rental_id[30], vehicle_id[20];
     get_param(body, "rental_id", rental_id, sizeof(rental_id));
     get_param(body, "vehicle_id", vehicle_id, sizeof(vehicle_id));
 
     FILE *rf = fopen(RENTALS_FILE, "r");
     FILE *temp_r = fopen("temp_r.txt", "w");
+    if (!rf || !temp_r) {
+        if (rf) fclose(rf);
+        if (temp_r) fclose(temp_r);
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Database error.\"}");
+        return;
+    }
+
     char line[500];
     Rental r;
     while (fgets(line, sizeof(line), rf)) {
@@ -648,7 +676,8 @@ void return_vehicle(const char *body, char *response_json) {
         if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
                    r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
             if (strcmp(r.rental_id, rental_id) == 0) {
-                strcpy(r.status, "Returned");
+                strncpy(r.status, target_status, sizeof(r.status) - 1);
+                r.status[sizeof(r.status) - 1] = '\0';
             }
             fprintf(temp_r, "%s|%s|%s|%s|%s|%s|%.2f|%s|%s\n", r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, r.total_cost, r.payment_method, r.status);
         }
@@ -658,24 +687,9 @@ void return_vehicle(const char *body, char *response_json) {
     remove(RENTALS_FILE);
     rename("temp_r.txt", RENTALS_FILE);
 
-    FILE *vf = fopen(VEHICLES_FILE, "r");
-    FILE *temp_v = fopen("temp_v.txt", "w");
-    Vehicle v;
-    while (fgets(line, sizeof(line), vf)) {
-        line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
-            if (strcmp(v.id, vehicle_id) == 0) strcpy(v.status, "Available");
-            fprintf(temp_v, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
-        }
-    }
-    fclose(vf);
-    fclose(temp_v);
-    remove(VEHICLES_FILE);
-    rename("temp_v.txt", VEHICLES_FILE);
-
-    log_activity("VEHICLE_RETURNED", rental_id);
-    strcpy(response_json, "{\"status\":\"success\",\"message\":\"Vehicle returned successfully. Status updated to Available.\"}");
+    set_vehicle_status(vehicle_id, "Available");
+    log_activity(log_tag, rental_id);
+    snprintf(response_json, BUFFER_SIZE, "{\"status\":\"success\",\"message\":\"%s\"}", success_msg);
 }
 
 void get_analytics(char *response_json) {
@@ -691,7 +705,7 @@ void get_analytics(char *response_json) {
             if (sscanf(line, "%29[^|]|%99[^|]|%19[^|]|%99[^|]|%29[^|]|%29[^|]|%lf|%29[^|]|%19[^|]",
                        r.rental_id, r.user_email, r.vehicle_id, r.vehicle_name, r.start_date, r.end_date, &r.total_cost, r.payment_method, r.status) == 9) {
                 if (strcmp(r.status, "Active") == 0) active_rentals++;
-                total_revenue += r.total_cost;
+                if (strcmp(r.status, "Cancelled") != 0) total_revenue += r.total_cost;
             }
         }
         fclose(rf);
@@ -712,6 +726,48 @@ void get_analytics(char *response_json) {
              total_revenue, active_rentals, total_vehicles);
 }
 
+void get_activity_logs(char *response_json) {
+    FILE *fp = fopen(ACTIVITY_LOG, "r");
+    if (!fp) {
+        strcpy(response_json, "{\"status\":\"success\",\"logs\":[]}");
+        return;
+    }
+
+    // Keep last 40 lines to avoid large payload
+    char lines[40][300];
+    int count = 0;
+    char buf[300];
+    while (fgets(buf, sizeof(buf), fp)) {
+        buf[strcspn(buf, "\r\n")] = 0;
+        if (strlen(buf) == 0) continue;
+        // Escape quotes and backslashes for JSON safety
+        char clean[290];
+        int j = 0;
+        for (int i = 0; buf[i] && j < 280; i++) {
+            if (buf[i] == '"' || buf[i] == '\\') clean[j++] = '\\';
+            clean[j++] = buf[i];
+        }
+        clean[j] = '\0';
+
+        if (count < 40) {
+            strcpy(lines[count++], clean);
+        } else {
+            for (int k = 1; k < 40; k++) strcpy(lines[k - 1], lines[k]);
+            strcpy(lines[39], clean);
+        }
+    }
+    fclose(fp);
+
+    strcpy(response_json, "{\"status\":\"success\",\"logs\":[");
+    for (int i = count - 1; i >= 0; i--) {
+        if (i < count - 1) strcat(response_json, ",");
+        strcat(response_json, "\"");
+        strcat(response_json, lines[i]);
+        strcat(response_json, "\"");
+    }
+    strcat(response_json, "]}");
+}
+
 void export_csv(SOCKET client) {
     FILE *rf = fopen(RENTALS_FILE, "r");
     if (!rf) {
@@ -723,7 +779,7 @@ void export_csv(SOCKET client) {
     char csv_data[10000] = "RentalID,UserEmail,VehicleID,VehicleName,StartDate,EndDate,TotalCost,PaymentMethod,Status\n";
     char line[500];
     while (fgets(line, sizeof(line), rf)) {
-        for(int i=0; line[i]; i++) if(line[i] == '|') line[i] = ',';
+        for (int i = 0; line[i]; i++) if (line[i] == '|') line[i] = ',';
         strcat(csv_data, line);
     }
     fclose(rf);
@@ -835,8 +891,10 @@ int main() {
                 get_param(body, "email", email, sizeof(email));
                 get_param(body, "password", pass, sizeof(pass));
                 if (strcmp(email, ADMIN_EMAIL) == 0 && strcmp(pass, ADMIN_PASS) == 0) {
+                    log_activity("ADMIN_LOGIN", email);
                     strcpy(json_out, "{\"status\":\"success\",\"message\":\"Admin authenticated.\"}");
                 } else {
+                    log_activity("ADMIN_LOGIN_FAILED", email);
                     strcpy(json_out, "{\"status\":\"error\",\"message\":\"Unauthorized.\"}");
                 }
                 send_response(client_fd, "application/json", json_out);
@@ -862,10 +920,18 @@ int main() {
                 get_user_rentals(body, json_out);
                 send_response(client_fd, "application/json", json_out);
             } else if (strncmp(buffer, "POST /api/rentals/return", 24) == 0) {
-                return_vehicle(body, json_out);
+                update_rental_status(body, "Returned", "VEHICLE_RETURNED",
+                                     "Vehicle returned successfully. Status updated to Available.", json_out);
+                send_response(client_fd, "application/json", json_out);
+            } else if (strncmp(buffer, "POST /api/rentals/cancel", 24) == 0) {
+                update_rental_status(body, "Cancelled", "BOOKING_CANCELLED",
+                                     "Booking cancelled & vehicle released to fleet.", json_out);
                 send_response(client_fd, "application/json", json_out);
             } else if (strncmp(buffer, "GET /api/admin/analytics", 24) == 0) {
                 get_analytics(json_out);
+                send_response(client_fd, "application/json", json_out);
+            } else if (strncmp(buffer, "GET /api/admin/logs", 19) == 0) {
+                get_activity_logs(json_out);
                 send_response(client_fd, "application/json", json_out);
             } else {
                 send_response(client_fd, "text/plain", "404 Not Found");
