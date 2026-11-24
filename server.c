@@ -204,7 +204,6 @@ int parse_ymd_to_days(const char *ymd) {
 }
 
 // --- Vehicle Multi-Photo Store (`vehicle_images.txt`) ---
-// Line format: VEHICLE_ID|||img1^^^img2^^^img3
 
 void save_vehicle_images(const char *vehicle_id, const char *images_joined) {
     if (!images_joined || strlen(images_joined) == 0) return;
@@ -1222,7 +1221,7 @@ int main() {
     listen(server_fd, 10);
 
     printf("==================================================\n");
-    printf("  DriveCore C Web Server Running at http://localhost:%d\n", g_port);
+    printf("  ChakaGo C Web Server Running at http://localhost:%d\n", g_port);
     printf("==================================================\n");
 
     char *buffer = (char *)malloc(BUFFER_SIZE);
