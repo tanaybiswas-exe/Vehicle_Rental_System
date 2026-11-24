@@ -177,7 +177,6 @@ function topUtilityButtons() {
     `;
 }
 
-// --- Multi-Photo Helper Functions (Admin Upload + URLs) ---
 function compressImageFile(file, maxW = 720, quality = 0.72) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -255,7 +254,7 @@ function renderAuth() {
 
     authEl.innerHTML = `
         <section class="auth-editorial">
-            <div class="brand-mark">DriveCore <span class="brand-badge">C-ENGINE</span></div>
+            <div class="brand-mark">ChakaGo <span class="brand-badge">C-ENGINE</span></div>
             <div>
                 <h1>Reserve vehicles with zero bloat.</h1>
                 <p>Native C Winsock server paired with file-backed persistence, multi-photo vehicle galleries, instant trip pricing, receipts, and live audit logs.</p>
@@ -440,7 +439,7 @@ function renderApp() {
     appEl.innerHTML = `
         <header class="topbar">
             <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-                <div class="brand-mark">${state.isAdmin ? 'AdminOS' : 'DriveCore'} <span class="brand-badge">${state.isAdmin ? 'ROOT' : 'FLEET'}</span></div>
+                <div class="brand-mark">${state.isAdmin ? 'AdminOS' : 'ChakaGo'} <span class="brand-badge">${state.isAdmin ? 'ROOT' : 'FLEET'}</span></div>
                 <nav class="subnav">
                     ${navItems.map(([key, label]) => `
                         <button type="button" class="subnav-btn ${activeTab === key ? 'active' : ''}" onclick="switchSection('${key}')">${label}</button>
