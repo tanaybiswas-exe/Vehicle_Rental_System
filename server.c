@@ -8,9 +8,10 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #define PORT 8080
-#define BUFFER_SIZE 65536
+#define BUFFER_SIZE 262144
 #define USERS_FILE "users.txt"
 #define VEHICLES_FILE "vehicles.txt"
+#define VEHICLE_IMAGES_FILE "vehicle_images.txt"
 #define RENTALS_FILE "rentals.txt"
 #define ACTIVITY_LOG "activity.log"
 #define CONFIG_FILE "config.txt"
@@ -93,7 +94,7 @@ void hash_secret(const char *raw, char *out, size_t out_len) {
 
 int verify_secret(const char *stored, const char *candidate) {
     if (!stored || !candidate) return 0;
-    if (strcmp(stored, candidate) == 0) return 1; // Backward-compatible plain match
+    if (strcmp(stored, candidate) == 0) return 1;
     char hashed[128];
     hash_secret(candidate, hashed, sizeof(hashed));
     return strcmp(stored, hashed) == 0;
@@ -155,18 +156,24 @@ void get_param(const char *body, const char *key, char *out, int max_len) {
     char search[64];
     snprintf(search, sizeof(search), "%s=", key);
     const char *pos = strstr(body, search);
+    while (pos && pos != body && *(pos - 1) != '&') {
+        pos = strstr(pos + 1, search);
+    }
     if (!pos) return;
-    if (pos != body && *(pos - 1) != '&') return;
 
     pos += strlen(search);
     const char *end = strchr(pos, '&');
     int len = end ? (int)(end - pos) : (int)strlen(pos);
-    char encoded[512];
-    if (len >= sizeof(encoded)) len = sizeof(encoded) - 1;
-    strncpy(encoded, pos, len);
+    if (len >= max_len) len = max_len - 1;
+    if (len < 0) len = 0;
+
+    char *encoded = (char *)malloc((size_t)len + 1);
+    if (!encoded) return;
+    strncpy(encoded, pos, (size_t)len);
     encoded[len] = '\0';
     url_decode(out, encoded);
     out[max_len - 1] = '\0';
+    free(encoded);
 }
 
 int validate_email(const char *email) {
@@ -192,15 +199,151 @@ int parse_ymd_to_days(const char *ymd) {
     int y = 0, m = 0, d = 0;
     if (sscanf(ymd, "%d-%d-%d", &y, &m, &d) != 3) return -1;
     if (m < 1 || m > 12 || d < 1 || d > 31) return -1;
-    // Rata Die approximation sufficient for day-span comparisons
     if (m <= 2) { y -= 1; m += 12; }
     return 365 * y + y / 4 - y / 100 + y / 400 + (153 * m - 457) / 5 + d - 306;
+}
+
+// --- Vehicle Multi-Photo Store (`vehicle_images.txt`) ---
+// Line format: VEHICLE_ID|||img1^^^img2^^^img3
+
+void save_vehicle_images(const char *vehicle_id, const char *images_joined) {
+    if (!images_joined || strlen(images_joined) == 0) return;
+
+    FILE *fp = fopen(VEHICLE_IMAGES_FILE, "r");
+    FILE *temp = fopen("temp_vimg.txt", "w");
+    if (!temp) {
+        if (fp) fclose(fp);
+        return;
+    }
+
+    int replaced = 0;
+    if (fp) {
+        char *line = (char *)malloc(131072);
+        if (line) {
+            while (fgets(line, 131072, fp)) {
+                line[strcspn(line, "\r\n")] = 0;
+                if (strlen(line) == 0) continue;
+                char *sep = strstr(line, "|||");
+                if (sep) {
+                    size_t id_len = (size_t)(sep - line);
+                    char id_buf[32];
+                    if (id_len >= sizeof(id_buf)) id_len = sizeof(id_buf) - 1;
+                    strncpy(id_buf, line, id_len);
+                    id_buf[id_len] = '\0';
+                    if (strcmp(id_buf, vehicle_id) == 0) {
+                        fprintf(temp, "%s|||%s\n", vehicle_id, images_joined);
+                        replaced = 1;
+                        continue;
+                    }
+                }
+                fprintf(temp, "%s\n", line);
+            }
+            free(line);
+        }
+        fclose(fp);
+    }
+
+    if (!replaced) {
+        fprintf(temp, "%s|||%s\n", vehicle_id, images_joined);
+    }
+
+    fclose(temp);
+    remove(VEHICLE_IMAGES_FILE);
+    rename("temp_vimg.txt", VEHICLE_IMAGES_FILE);
+}
+
+void delete_vehicle_images(const char *vehicle_id) {
+    FILE *fp = fopen(VEHICLE_IMAGES_FILE, "r");
+    if (!fp) return;
+    FILE *temp = fopen("temp_vimg.txt", "w");
+    if (!temp) { fclose(fp); return; }
+
+    char *line = (char *)malloc(131072);
+    if (line) {
+        while (fgets(line, 131072, fp)) {
+            line[strcspn(line, "\r\n")] = 0;
+            if (strlen(line) == 0) continue;
+            char *sep = strstr(line, "|||");
+            if (sep) {
+                size_t id_len = (size_t)(sep - line);
+                char id_buf[32];
+                if (id_len >= sizeof(id_buf)) id_len = sizeof(id_buf) - 1;
+                strncpy(id_buf, line, id_len);
+                id_buf[id_len] = '\0';
+                if (strcmp(id_buf, vehicle_id) == 0) continue;
+            }
+            fprintf(temp, "%s\n", line);
+        }
+        free(line);
+    }
+    fclose(fp);
+    fclose(temp);
+    remove(VEHICLE_IMAGES_FILE);
+    rename("temp_vimg.txt", VEHICLE_IMAGES_FILE);
+}
+
+void build_images_json_array(const char *vehicle_id, char *out_json, size_t max_len) {
+    snprintf(out_json, max_len, "[]");
+    FILE *fp = fopen(VEHICLE_IMAGES_FILE, "r");
+    if (!fp) return;
+
+    char *line = (char *)malloc(131072);
+    if (!line) { fclose(fp); return; }
+
+    while (fgets(line, 131072, fp)) {
+        line[strcspn(line, "\r\n")] = 0;
+        char *sep = strstr(line, "|||");
+        if (!sep) continue;
+
+        size_t id_len = (size_t)(sep - line);
+        char id_buf[32];
+        if (id_len >= sizeof(id_buf)) id_len = sizeof(id_buf) - 1;
+        strncpy(id_buf, line, id_len);
+        id_buf[id_len] = '\0';
+
+        if (strcmp(id_buf, vehicle_id) == 0) {
+            char *payload = sep + 3;
+            snprintf(out_json, max_len, "[");
+            int first = 1;
+            char *p = payload;
+            while (p && *p) {
+                char *next = strstr(p, "^^^");
+                size_t seg_len = next ? (size_t)(next - p) : strlen(p);
+                if (seg_len > 0) {
+                    char *raw_img = (char *)malloc(seg_len + 1);
+                    char *esc_img = (char *)malloc(seg_len * 2 + 8);
+                    if (raw_img && esc_img) {
+                        strncpy(raw_img, p, seg_len);
+                        raw_img[seg_len] = '\0';
+                        sanitize_json_str(raw_img, esc_img, seg_len * 2 + 8);
+                        if (!first && strlen(out_json) + 2 < max_len) strcat(out_json, ",");
+                        if (strlen(out_json) + strlen(esc_img) + 4 < max_len) {
+                            strcat(out_json, "\"");
+                            strcat(out_json, esc_img);
+                            strcat(out_json, "\"");
+                            first = 0;
+                        }
+                    }
+                    free(raw_img);
+                    free(esc_img);
+                }
+                if (!next) break;
+                p = next + 3;
+            }
+            if (strlen(out_json) + 2 < max_len) strcat(out_json, "]");
+            break;
+        }
+    }
+
+    free(line);
+    fclose(fp);
 }
 
 void init_files() {
     FILE *fp = fopen(USERS_FILE, "a"); if (fp) fclose(fp);
     fp = fopen(RENTALS_FILE, "a"); if (fp) fclose(fp);
     fp = fopen(ACTIVITY_LOG, "a"); if (fp) fclose(fp);
+    fp = fopen(VEHICLE_IMAGES_FILE, "a"); if (fp) fclose(fp);
 
     fp = fopen(VEHICLES_FILE, "r");
     if (!fp) {
@@ -517,20 +660,33 @@ void get_all_vehicles(char *response_json) {
         return;
     }
     strcpy(response_json, "{\"status\":\"success\",\"vehicles\":[");
-    char line[300], item[300];
+    char line[300];
+    char *item = (char *)malloc(131072);
+    char *imgs_json = (char *)malloc(131072);
     Vehicle v;
     int first = 1;
+
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
         if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
                    v.id, v.name, v.type, &v.price, v.status) == 5) {
-            if (!first) strcat(response_json, ",");
-            snprintf(item, sizeof(item), "{\"id\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"price\":%.2f,\"status\":\"%s\"}",
-                     v.id, v.name, v.type, v.price, v.status);
-            strcat(response_json, item);
-            first = 0;
+            if (imgs_json) build_images_json_array(v.id, imgs_json, 131072);
+            if (item && imgs_json) {
+                snprintf(item, 131072,
+                         "{\"id\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"price\":%.2f,\"status\":\"%s\",\"images\":%s}",
+                         v.id, v.name, v.type, v.price, v.status, imgs_json);
+                if (!first && strlen(response_json) + strlen(item) + 4 < BUFFER_SIZE) {
+                    strcat(response_json, ",");
+                }
+                if (strlen(response_json) + strlen(item) + 4 < BUFFER_SIZE) {
+                    strcat(response_json, item);
+                    first = 0;
+                }
+            }
         }
     }
+    free(item);
+    free(imgs_json);
     strcat(response_json, "]}");
     fclose(fp);
 }
@@ -571,6 +727,14 @@ void add_vehicle(const char *body, char *response_json) {
     }
     fprintf(fp, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
     fclose(fp);
+
+    char *images = (char *)malloc(131072);
+    if (images) {
+        get_param(body, "images", images, 131072);
+        if (strlen(images) > 0) save_vehicle_images(v.id, images);
+        free(images);
+    }
+
     log_activity("VEHICLE_ADD", v.id);
     strcpy(response_json, "{\"status\":\"success\",\"message\":\"Vehicle added successfully.\"}");
 }
@@ -586,6 +750,8 @@ void update_vehicle(const char *body, char *response_json) {
     FILE *fp = fopen(VEHICLES_FILE, "r");
     FILE *temp = fopen("temp_vehicles.txt", "w");
     if (!fp || !temp) {
+        if (fp) fclose(fp);
+        if (temp) fclose(temp);
         strcpy(response_json, "{\"status\":\"error\",\"message\":\"File error.\"}");
         return;
     }
@@ -613,6 +779,12 @@ void update_vehicle(const char *body, char *response_json) {
     rename("temp_vehicles.txt", VEHICLES_FILE);
 
     if (found) {
+        char *images = (char *)malloc(131072);
+        if (images) {
+            get_param(body, "images", images, 131072);
+            if (strlen(images) > 0) save_vehicle_images(id, images);
+            free(images);
+        }
         log_activity("VEHICLE_UPDATE", id);
         strcpy(response_json, "{\"status\":\"success\",\"message\":\"Vehicle updated successfully.\"}");
     } else {
@@ -627,6 +799,8 @@ void delete_vehicle(const char *body, char *response_json) {
     FILE *fp = fopen(VEHICLES_FILE, "r");
     FILE *temp = fopen("temp_vehicles.txt", "w");
     if (!fp || !temp) {
+        if (fp) fclose(fp);
+        if (temp) fclose(temp);
         strcpy(response_json, "{\"status\":\"error\",\"message\":\"File error.\"}");
         return;
     }
@@ -651,6 +825,7 @@ void delete_vehicle(const char *body, char *response_json) {
     rename("temp_vehicles.txt", VEHICLES_FILE);
 
     if (found) {
+        delete_vehicle_images(id);
         log_activity("VEHICLE_DELETE", id);
         strcpy(response_json, "{\"status\":\"success\",\"message\":\"Vehicle deleted permanently.\"}");
     } else {
@@ -1019,8 +1194,8 @@ void serve_file(SOCKET client, const char *filename, const char *content_type) {
     long fsize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    char *data = (char *)malloc(fsize + 1);
-    fread(data, 1, fsize, fp);
+    char *data = (char *)malloc((size_t)fsize + 1);
+    fread(data, 1, (size_t)fsize, fp);
     fclose(fp);
     data[fsize] = '\0';
 
@@ -1059,9 +1234,33 @@ int main() {
         SOCKET client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &c);
         if (client_fd == INVALID_SOCKET) continue;
 
-        int recv_size = recv(client_fd, buffer, BUFFER_SIZE - 1, 0);
-        if (recv_size > 0) {
-            buffer[recv_size] = '\0';
+        int total_recv = 0;
+        int header_end_offset = -1;
+        int content_length = 0;
+
+        while (total_recv < BUFFER_SIZE - 1) {
+            int r = recv(client_fd, buffer + total_recv, BUFFER_SIZE - 1 - total_recv, 0);
+            if (r <= 0) break;
+            total_recv += r;
+            buffer[total_recv] = '\0';
+
+            if (header_end_offset < 0) {
+                char *hdr_end = strstr(buffer, "\r\n\r\n");
+                if (hdr_end) {
+                    header_end_offset = (int)((hdr_end + 4) - buffer);
+                    char *cl = strstr(buffer, "Content-Length:");
+                    if (!cl) cl = strstr(buffer, "content-length:");
+                    if (cl) content_length = atoi(cl + 15);
+                }
+            }
+
+            if (header_end_offset >= 0 && (total_recv - header_end_offset) >= content_length) {
+                break;
+            }
+        }
+
+        if (total_recv > 0) {
+            buffer[total_recv] = '\0';
             char *body = strstr(buffer, "\r\n\r\n");
             body = body ? body + 4 : "";
 
