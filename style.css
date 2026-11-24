@@ -108,11 +108,12 @@ body {
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { margin-bottom: 1rem; }
 .field label { display: block; font-size: 0.76rem; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
-input, select {
+input, select, textarea {
     width: 100%; padding: 10.5px 13px; border-radius: 10px;
-    border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); font-size: 0.9rem;
+    border: 1.5px solid var(--line); background: var(--bg); color: var(--ink);
+    font-size: 0.9rem; font-family: inherit;
 }
-input:focus, select:focus { outline: none; border-color: var(--brand); background: var(--surface); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand); background: var(--surface); }
 input:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .btn {
@@ -173,27 +174,77 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
 .search-sort input { width: 210px; padding: 8px 12px; font-size: 0.85rem; }
 .search-sort select { width: auto; padding: 8px 12px; font-size: 0.85rem; }
 
+/* Fleet Cards with Real Multi-Photo Stage */
 .cards-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(275px, 1fr)); gap: 16px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;
 }
 .v-card {
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 1.35rem; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between;
+    padding: 1.25rem; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between;
 }
-.v-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; }
+.v-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
 .v-code { font-size: 0.75rem; font-weight: 700; color: var(--muted); background: var(--surface-alt); padding: 3px 9px; border-radius: 6px; }
-.v-visual {
-    height: 76px; border-radius: 11px; background: var(--surface-alt);
-    display: grid; place-items: center; font-size: 2.2rem; margin-bottom: 0.95rem;
+.v-photo-stage {
+    position: relative;
+    height: 165px;
+    border-radius: 12px;
+    background: var(--surface-alt);
+    overflow: hidden;
+    margin-bottom: 0.9rem;
+    border: 1px solid var(--line-soft);
+    cursor: pointer;
 }
+.v-photo-stage img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.v-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border-radius: 999px;
+    border: none; background: rgba(17, 24, 39, 0.72); color: #fff;
+    font-size: 0.9rem; font-weight: 800; cursor: pointer;
+    display: grid; place-items: center;
+}
+.v-arrow.prev { left: 8px; }
+.v-arrow.next { right: 8px; }
+.v-dots {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 5px; background: rgba(17, 24, 39, 0.55);
+    padding: 4px 8px; border-radius: 999px;
+}
+.v-dot {
+    width: 6px; height: 6px; border-radius: 999px; border: none;
+    background: rgba(255,255,255,0.45); cursor: pointer; padding: 0;
+}
+.v-dot.active { width: 14px; background: #fff; }
+.v-photo-count {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(17, 24, 39, 0.72); color: #fff;
+    font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+}
+
 .v-name { font-size: 1.1rem; font-weight: 800; }
-.v-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.1rem; }
+.v-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
 .v-foot {
     display: flex; justify-content: space-between; align-items: center;
     padding-top: 0.9rem; border-top: 1px solid var(--line-soft);
 }
 .v-rate strong { font-size: 1.1rem; color: var(--brand); }
 .v-rate small { color: var(--muted); font-size: 0.76rem; }
+
+/* Admin Multi-Photo Previews */
+.photo-preview-strip {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+}
+.photo-thumb-wrap {
+    position: relative; width: 74px; height: 54px; border-radius: 8px;
+    overflow: hidden; border: 1px solid var(--line); background: var(--surface-alt);
+}
+.photo-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.photo-del-btn {
+    position: absolute; top: 2px; right: 2px; width: 18px; height: 18px;
+    border-radius: 999px; border: none; background: rgba(185,28,28,0.9); color: #fff;
+    font-size: 0.7rem; font-weight: 800; cursor: pointer; line-height: 1;
+}
 
 .panel {
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -235,7 +286,8 @@ td { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); font-size: 0
 }
 .modal-sheet {
     background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-    padding: 1.75rem; width: 100%; max-width: 460px; box-shadow: var(--shadow-lg);
+    padding: 1.75rem; width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
+    max-height: 92vh; overflow-y: auto;
 }
 .fare-slip {
     background: var(--bg); border: 1px dashed var(--line); border-radius: 12px;
