@@ -1,11 +1,93 @@
+const I18N = {
+    en: {
+        signIn: 'Sign In',
+        register: 'Register',
+        welcomeBack: 'Welcome back',
+        signInSub: 'Sign in to book rides or open AdminOS.',
+        email: 'Email',
+        password: 'Password',
+        continueBtn: 'Continue',
+        createAccount: 'Create account',
+        regSub: '6+ chars with letter, number & symbol.',
+        fullName: 'Full Name',
+        phone: 'Phone',
+        secQ: 'Security Question',
+        secA: 'Answer',
+        signOut: 'Sign Out',
+        fleet: 'Fleet',
+        myRentals: 'My Rentals',
+        profile: 'Profile',
+        overview: 'Overview',
+        vehicles: 'Vehicles',
+        customers: 'Customers',
+        addVehicle: 'Add Vehicle',
+        allBookings: 'All Bookings',
+        auditLog: 'Audit Log',
+        availVehicles: 'Available Vehicles',
+        activeBookings: 'Active Bookings',
+        totalTrips: 'Total Trips',
+        totalRevenue: 'Total Revenue',
+        activeRentals: 'Active Rentals',
+        totalFleet: 'Total Fleet',
+        book: 'Book',
+        receipt: 'Receipt',
+        extend: 'Extend',
+        returnBtn: 'Return',
+        cancelBtn: 'Cancel',
+        editBtn: 'Edit',
+        deleteBtn: 'Delete'
+    },
+    bn: {
+        signIn: 'লগইন',
+        register: 'রেজিস্টার',
+        welcomeBack: 'স্বাগতম',
+        signInSub: 'রাইড বুক করতে বা AdminOS খুলতে লগইন করুন।',
+        email: 'ইমেইল',
+        password: 'পাসওয়ার্ড',
+        continueBtn: 'এগিয়ে যান',
+        createAccount: 'অ্যাকাউন্ট তৈরি করুন',
+        regSub: 'কমপক্ষে ৬ অক্ষর: অক্ষর, সংখ্যা ও বিশেষ চিহ্ন থাকতে হবে।',
+        fullName: 'পুরো নাম',
+        phone: 'ফোন নম্বর',
+        secQ: 'নিরাপত্তা প্রশ্ন',
+        secA: 'উত্তর',
+        signOut: 'লগআউট',
+        fleet: 'ফ্লিট',
+        myRentals: 'আমার বুকিং',
+        profile: 'প্রোফাইল',
+        overview: 'ওভারভিউ',
+        vehicles: 'গাড়ি সমূহ',
+        customers: 'কাস্টমার',
+        addVehicle: 'গাড়ি যোগ করুন',
+        allBookings: 'সব বুকিং',
+        auditLog: 'অডিট লগ',
+        availVehicles: 'উপলব্ধ গাড়ি',
+        activeBookings: 'সক্রিয় বুকিং',
+        totalTrips: 'মোট ট্রিপ',
+        totalRevenue: 'মোট আয়',
+        activeRentals: 'সক্রিয় রেন্টাল',
+        totalFleet: 'মোট ফ্লিট',
+        book: 'বুক করুন',
+        receipt: 'রসিদ',
+        extend: 'বাড়ান',
+        returnBtn: 'ফেরত দিন',
+        cancelBtn: 'বাতিল',
+        editBtn: 'এডিট',
+        deleteBtn: 'ডিলিট'
+    }
+};
+
 const state = {
     theme: localStorage.getItem('dc_theme') || 'light',
+    lang: localStorage.getItem('dc_lang') || 'en',
     authTab: 'login',
     user: null,
     isAdmin: false,
     userTab: 'fleet',
     adminTab: 'analytics',
     vehicles: [],
+    userRentals: [],
+    allRentals: [],
     category: 'All',
     search: '',
     sort: 'default',
@@ -14,6 +96,10 @@ const state = {
 };
 
 document.body.setAttribute('data-theme', state.theme);
+
+function t(key) {
+    return (I18N[state.lang] && I18N[state.lang][key]) || I18N.en[key] || key;
+}
 
 function toast(msg, type = 'ok') {
     const el = document.getElementById('toast');
@@ -27,7 +113,15 @@ function toggleTheme() {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('dc_theme', state.theme);
     document.body.setAttribute('data-theme', state.theme);
-    renderApp();
+    if (state.user || state.isAdmin) renderApp();
+    else renderAuth();
+}
+
+function toggleLang() {
+    state.lang = state.lang === 'en' ? 'bn' : 'en';
+    localStorage.setItem('dc_lang', state.lang);
+    if (state.user || state.isAdmin) renderApp();
+    else renderAuth();
 }
 
 function toForm(obj) {
@@ -53,12 +147,19 @@ function vehicleIcon(type) {
 }
 
 function statusTag(status) {
-    if (status === 'Available') return '<span class="tag tag-ok">Available</span>';
-    if (status === 'Under Maintenance') return '<span class="tag tag-warn">Under Maintenance</span>';
+    if (status === 'Available' || status === 'Returned') return `<span class="tag tag-ok">${status}</span>`;
+    if (status === 'Under Maintenance') return `<span class="tag tag-warn">${status}</span>`;
     return `<span class="tag tag-bad">${status}</span>`;
 }
 
-// --- AUTH VIEW (JS Rendered) ---
+function topUtilityButtons() {
+    return `
+        <button type="button" class="btn btn-ghost" style="padding:7px 11px; font-size:0.78rem;" onclick="toggleLang()">${state.lang === 'en' ? 'বাংলা' : 'EN'}</button>
+        <button type="button" class="btn btn-ghost" style="padding:7px 11px; font-size:0.78rem;" onclick="toggleTheme()">${state.theme === 'dark' ? '☀️' : '🌙'}</button>
+    `;
+}
+
+// --- AUTH VIEW ---
 function renderAuth() {
     const authEl = document.getElementById('authView');
     const appEl = document.getElementById('appView');
@@ -70,24 +171,24 @@ function renderAuth() {
             <div class="brand-mark">DriveCore <span class="brand-badge">C-ENGINE</span></div>
             <div>
                 <h1>Reserve vehicles with zero bloat.</h1>
-                <p>Native C Winsock server paired with file-backed persistence, instant trip pricing, multi-gateway checkout, and live audit logs.</p>
+                <p>Native C Winsock server paired with file-backed persistence, instant trip pricing, multi-gateway checkout, booking receipts, and live audit logs.</p>
                 <div class="spec-list">
                     <span class="spec-item">Winsock HTTP Server</span>
                     <span class="spec-item">bKash / Nagad / Card / COD</span>
-                    <span class="spec-item">Audit Log Trail</span>
-                    <span class="spec-item">CSV Export</span>
+                    <span class="spec-item">Printable Receipts</span>
+                    <span class="spec-item">Audit Log & CSV</span>
                 </div>
             </div>
             <div class="mono" style="font-size:0.78rem; color:var(--muted);">localhost:8080 • File Storage Active</div>
         </section>
         <section class="auth-form-col">
             <div class="auth-box">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; gap:8px;">
                     <div class="tabs-bar" style="margin-bottom:0;">
-                        <button type="button" class="tab-btn ${state.authTab === 'login' ? 'active' : ''}" onclick="setAuthTab('login')">Sign In</button>
-                        <button type="button" class="tab-btn ${state.authTab === 'register' ? 'active' : ''}" onclick="setAuthTab('register')">Register</button>
+                        <button type="button" class="tab-btn ${state.authTab === 'login' ? 'active' : ''}" onclick="setAuthTab('login')">${t('signIn')}</button>
+                        <button type="button" class="tab-btn ${state.authTab === 'register' ? 'active' : ''}" onclick="setAuthTab('register')">${t('register')}</button>
                     </div>
-                    <button type="button" class="btn btn-ghost" style="padding:7px 11px; font-size:0.78rem;" onclick="toggleTheme()">${state.theme === 'dark' ? '☀️' : '🌙'}</button>
+                    <div style="display:flex; gap:6px;">${topUtilityButtons()}</div>
                 </div>
                 ${state.authTab === 'login' ? renderLoginForm() : renderRegisterForm()}
             </div>
@@ -103,25 +204,25 @@ function setAuthTab(tab) {
 
 function renderLoginForm() {
     return `
-        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:4px;">Welcome back</h2>
-        <p style="color:var(--muted); font-size:0.88rem; margin-bottom:1.35rem;">Sign in to book rides or open AdminOS.</p>
+        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:4px;">${t('welcomeBack')}</h2>
+        <p style="color:var(--muted); font-size:0.88rem; margin-bottom:1.35rem;">${t('signInSub')}</p>
         <form onsubmit="submitLogin(event)">
             <div class="field">
-                <label>Email</label>
+                <label>${t('email')}</label>
                 <input type="email" id="lEmail" required placeholder="you@example.com">
             </div>
             <div class="field">
-                <label>Password</label>
+                <label>${t('password')}</label>
                 <input type="password" id="lPass" required placeholder="Enter password">
             </div>
-            <button class="btn btn-brand" type="submit">Continue</button>
+            <button class="btn btn-brand" type="submit">${t('continueBtn')}</button>
         </form>
         ${state.lockoutQuestion ? `
             <div class="lockout-box">
                 <div style="font-weight:800; font-size:0.88rem; color:var(--bad); margin-bottom:4px;">Account Locked — Security Reset</div>
                 <div class="mono" style="font-size:0.82rem; margin-bottom:10px; background:var(--surface); padding:8px; border-radius:8px;">${state.lockoutQuestion}</div>
                 <form onsubmit="submitReset(event)">
-                    <div class="field"><label>Security Answer</label><input type="text" id="rAns" required></div>
+                    <div class="field"><label>${t('secA')}</label><input type="text" id="rAns" required></div>
                     <div class="row-2">
                         <div class="field"><label>New Password</label><input type="password" id="rPass1" required></div>
                         <div class="field"><label>Confirm</label><input type="password" id="rPass2" required></div>
@@ -135,20 +236,20 @@ function renderLoginForm() {
 
 function renderRegisterForm() {
     return `
-        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:4px;">Create account</h2>
-        <p style="color:var(--muted); font-size:0.88rem; margin-bottom:1.35rem;">6+ chars with letter, number & symbol.</p>
+        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:4px;">${t('createAccount')}</h2>
+        <p style="color:var(--muted); font-size:0.88rem; margin-bottom:1.35rem;">${t('regSub')}</p>
         <form onsubmit="submitRegister(event)">
             <div class="row-2">
-                <div class="field"><label>Full Name</label><input type="text" id="rName" required></div>
-                <div class="field"><label>Phone</label><input type="text" id="rPhone" required></div>
+                <div class="field"><label>${t('fullName')}</label><input type="text" id="rName" required></div>
+                <div class="field"><label>${t('phone')}</label><input type="text" id="rPhone" required></div>
             </div>
-            <div class="field"><label>Email</label><input type="email" id="rEmail" required></div>
-            <div class="field"><label>Password</label><input type="password" id="rPass" required></div>
+            <div class="field"><label>${t('email')}</label><input type="email" id="rEmail" required></div>
+            <div class="field"><label>${t('password')}</label><input type="password" id="rPass" required></div>
             <div class="row-2">
-                <div class="field"><label>Security Question</label><input type="text" id="rSecQ" required placeholder="First school?"></div>
-                <div class="field"><label>Answer</label><input type="text" id="rSecA" required></div>
+                <div class="field"><label>${t('secQ')}</label><input type="text" id="rSecQ" required placeholder="First school?"></div>
+                <div class="field"><label>${t('secA')}</label><input type="text" id="rSecA" required></div>
             </div>
-            <button class="btn btn-brand" type="submit">Create Account</button>
+            <button class="btn btn-brand" type="submit">${t('createAccount')}</button>
         </form>
     `;
 }
@@ -226,7 +327,7 @@ function logout() {
     renderAuth();
 }
 
-// --- APP SHELL (JS Rendered) ---
+// --- APP SHELL ---
 function renderApp() {
     document.getElementById('authView').classList.add('hidden');
     const appEl = document.getElementById('appView');
@@ -234,16 +335,17 @@ function renderApp() {
 
     const navItems = state.isAdmin
         ? [
-            ['analytics', 'Overview'],
-            ['vehicles', 'Vehicles'],
-            ['users', 'Customers'],
-            ['add', 'Add Vehicle'],
-            ['logs', 'Audit Log']
+            ['analytics', t('overview')],
+            ['vehicles', t('vehicles')],
+            ['bookings', t('allBookings')],
+            ['users', t('customers')],
+            ['add', t('addVehicle')],
+            ['logs', t('auditLog')]
         ]
         : [
-            ['fleet', 'Fleet'],
-            ['bookings', 'My Rentals'],
-            ['profile', 'Profile']
+            ['fleet', t('fleet')],
+            ['bookings', t('myRentals')],
+            ['profile', t('profile')]
         ];
 
     const activeTab = state.isAdmin ? state.adminTab : state.userTab;
@@ -260,8 +362,8 @@ function renderApp() {
             </div>
             <div class="topbar-right">
                 <span class="chip-user">${state.isAdmin ? 'admin@rental.com' : state.user.name}</span>
-                <button type="button" class="btn btn-ghost" style="padding:7px 11px; font-size:0.8rem;" onclick="toggleTheme()">${state.theme === 'dark' ? '☀️' : '🌙'}</button>
-                <button type="button" class="btn btn-soft-bad" onclick="logout()">Sign Out</button>
+                ${topUtilityButtons()}
+                <button type="button" class="btn btn-soft-bad" onclick="logout()">${t('signOut')}</button>
             </div>
         </header>
         <div class="content" id="workspaceRoot"></div>
@@ -289,15 +391,16 @@ async function loadUserSection() {
     state.vehicles = vData.vehicles || [];
 
     const bRes = await postForm('/api/rentals/user', { email: state.user.email });
-    const rentals = bRes.rentals || [];
+    state.userRentals = bRes.rentals || [];
+    const rentals = state.userRentals;
     const availCount = state.vehicles.filter(v => v.status === 'Available').length;
     const activeCount = rentals.filter(r => r.status === 'Active').length;
 
     const kpiHtml = `
         <div class="metrics-strip">
-            <div class="metric-box"><span>Available Vehicles</span><strong class="mono">${availCount}</strong></div>
-            <div class="metric-box"><span>Active Bookings</span><strong class="mono" style="color:var(--brand);">${activeCount}</strong></div>
-            <div class="metric-box"><span>Total Trips</span><strong class="mono">${rentals.length}</strong></div>
+            <div class="metric-box"><span>${t('availVehicles')}</span><strong class="mono">${availCount}</strong></div>
+            <div class="metric-box"><span>${t('activeBookings')}</span><strong class="mono" style="color:var(--brand);">${activeCount}</strong></div>
+            <div class="metric-box"><span>${t('totalTrips')}</span><strong class="mono">${rentals.length}</strong></div>
         </div>
     `;
 
@@ -307,7 +410,7 @@ async function loadUserSection() {
     } else if (state.userTab === 'bookings') {
         root.innerHTML = kpiHtml + `
             <div class="panel">
-                <div class="panel-head"><h2>My Rentals & Payments</h2></div>
+                <div class="panel-head"><h2>${t('myRentals')}</h2></div>
                 <table>
                     <thead><tr><th>ID</th><th>Vehicle</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
@@ -316,14 +419,16 @@ async function loadUserSection() {
                                 <td class="mono"><strong>${r.rental_id}</strong></td>
                                 <td>${r.vehicle_name} <span class="mono" style="color:var(--muted);">(${r.vehicle_id})</span></td>
                                 <td class="mono">${r.start_date} → ${r.end_date}</td>
-                                <td class="mono"><strong>${r.total_cost.toFixed(0)} BDT</strong></td>
+                                <td class="mono"><strong>${Number(r.total_cost).toFixed(0)} BDT</strong></td>
                                 <td>${r.payment_method}</td>
                                 <td>${statusTag(r.status)}</td>
-                                <td style="display:flex; gap:6px;">
+                                <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-ghost" style="padding:6px 10px; font-size:0.78rem;" onclick="openReceiptById('${r.rental_id}')">${t('receipt')}</button>
                                     ${r.status === 'Active' ? `
-                                        <button class="btn btn-soft-ok" onclick="returnRental('${r.rental_id}','${r.vehicle_id}')">Return</button>
-                                        <button class="btn btn-soft-bad" onclick="cancelRental('${r.rental_id}','${r.vehicle_id}')">Cancel</button>
-                                    ` : '<span style="color:var(--muted); font-size:0.8rem;">—</span>'}
+                                        <button type="button" class="btn btn-soft-warn" onclick="openExtendModal('${r.rental_id}','${r.vehicle_id}','${r.end_date}')">${t('extend')}</button>
+                                        <button type="button" class="btn btn-soft-ok" onclick="openReturnModal('${r.rental_id}','${r.vehicle_id}')">${t('returnBtn')}</button>
+                                        <button type="button" class="btn btn-soft-bad" onclick="cancelRental('${r.rental_id}','${r.vehicle_id}')">${t('cancelBtn')}</button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `).join('') : '<tr><td colspan="7" style="color:var(--muted);">No rentals yet.</td></tr>'}
@@ -334,14 +439,14 @@ async function loadUserSection() {
     } else if (state.userTab === 'profile') {
         root.innerHTML = kpiHtml + `
             <div class="panel" style="max-width:620px;">
-                <div class="panel-head"><h2>Account & Password</h2></div>
+                <div class="panel-head"><h2>${t('profile')}</h2></div>
                 <form onsubmit="submitProfile(event)">
                     <div class="row-2">
-                        <div class="field"><label>Name</label><input type="text" id="pName" value="${state.user.name}" required></div>
-                        <div class="field"><label>Phone</label><input type="text" id="pPhone" value="${state.user.phone}" required></div>
+                        <div class="field"><label>${t('fullName')}</label><input type="text" id="pName" value="${state.user.name}" required></div>
+                        <div class="field"><label>${t('phone')}</label><input type="text" id="pPhone" value="${state.user.phone}" required></div>
                     </div>
                     <div class="row-2">
-                        <div class="field"><label>Email</label><input type="email" value="${state.user.email}" disabled></div>
+                        <div class="field"><label>${t('email')}</label><input type="email" value="${state.user.email}" disabled></div>
                         <div class="field"><label>New Password (optional)</label><input type="password" id="pNewPass" placeholder="Leave empty to keep"></div>
                     </div>
                     <div class="field"><label>Current Password (required)</label><input type="password" id="pCurPass" required></div>
@@ -401,8 +506,8 @@ function renderFleetCards() {
                 <div class="v-meta">${v.type} • Instant Pickup</div>
             </div>
             <div class="v-foot">
-                <div class="v-rate"><strong class="mono">${v.price.toFixed(0)} BDT</strong> <small>/ day</small></div>
-                <button type="button" class="btn btn-brand" style="width:auto; padding:8px 14px; font-size:0.82rem;" onclick="openCheckout('${v.id}','${v.name}',${v.price})">Book</button>
+                <div class="v-rate"><strong class="mono">${Number(v.price).toFixed(0)} BDT</strong> <small>/ day</small></div>
+                <button type="button" class="btn btn-brand" style="width:auto; padding:8px 14px; font-size:0.82rem;" onclick="openCheckout('${v.id}','${v.name}',${v.price})">${t('book')}</button>
             </div>
         </article>
     `).join('') : `<div class="panel"><p style="color:var(--muted);">No matching available vehicles.</p></div>`;
@@ -419,7 +524,7 @@ function openCheckout(id, name, rate) {
                 <h2 style="font-size:1.2rem; font-weight:800;">${name}</h2>
                 <span class="v-code mono">${id}</span>
             </div>
-            <p style="color:var(--muted); font-size:0.84rem; margin-bottom:1.15rem;">Rate: <strong class="mono">${rate.toFixed(0)} BDT</strong> / day</p>
+            <p style="color:var(--muted); font-size:0.84rem; margin-bottom:1.15rem;">Rate: <strong class="mono">${Number(rate).toFixed(0)} BDT</strong> / day</p>
             <form onsubmit="submitBooking(event)">
                 <div class="row-2">
                     <div class="field"><label>Start Date</label><input type="date" id="bStart" required onchange="recalcFare()"></div>
@@ -427,7 +532,7 @@ function openCheckout(id, name, rate) {
                 </div>
                 <div class="fare-slip">
                     <div class="fare-row"><span>Duration</span><span class="mono" id="fDays">0 days</span></div>
-                    <div class="fare-row"><span>Daily Rate</span><span class="mono">${rate.toFixed(0)} BDT</span></div>
+                    <div class="fare-row"><span>Daily Rate</span><span class="mono">${Number(rate).toFixed(0)} BDT</span></div>
                     <div class="fare-total"><span>Total Payable</span><span class="mono" id="fTotal">0 BDT</span></div>
                 </div>
                 <div class="field">
@@ -479,13 +584,111 @@ async function submitBooking(e) {
         toast('Choose valid start and end dates', 'error');
         return;
     }
-    const res = await postForm('/api/rentals/book', {
+    const payload = {
         email: state.user.email,
         vehicle_id: state.booking.id,
+        vehicle_name: state.booking.name,
         start_date: document.getElementById('bStart').value,
         end_date: document.getElementById('bEnd').value,
         payment_method: state.booking.method,
         total_cost: state.booking.total
+    };
+    const res = await postForm('/api/rentals/book', payload);
+    toast(res.message, res.status === 'success' ? 'ok' : 'error');
+    if (res.status === 'success') {
+        await loadUserSection();
+        openReceiptModal({
+            rental_id: res.rental_id || 'CONFIRMED',
+            user_email: state.user.email,
+            vehicle_id: payload.vehicle_id,
+            vehicle_name: payload.vehicle_name,
+            start_date: payload.start_date,
+            end_date: payload.end_date,
+            total_cost: payload.total_cost,
+            payment_method: payload.payment_method,
+            status: 'Active'
+        });
+    }
+}
+
+function openReceiptById(rentalId) {
+    const rec = state.userRentals.find(r => r.rental_id === rentalId) || state.allRentals.find(r => r.rental_id === rentalId);
+    if (rec) openReceiptModal(rec);
+}
+
+function openReceiptModal(r) {
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+        <div class="modal-sheet">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="font-size:1.2rem; font-weight:800;">Booking Receipt</h2>
+                ${statusTag(r.status)}
+            </div>
+            <div class="fare-slip">
+                <div class="fare-row"><span>Rental ID</span><span class="mono"><strong>${r.rental_id}</strong></span></div>
+                <div class="fare-row"><span>Customer</span><span>${r.user_email || (state.user ? state.user.email : '')}</span></div>
+                <div class="fare-row"><span>Vehicle</span><span>${r.vehicle_name} (${r.vehicle_id})</span></div>
+                <div class="fare-row"><span>Dates</span><span class="mono">${r.start_date} → ${r.end_date}</span></div>
+                <div class="fare-row"><span>Gateway</span><span>${r.payment_method}</span></div>
+                <div class="fare-total"><span>Total Paid</span><span class="mono">${Number(r.total_cost).toLocaleString()} BDT</span></div>
+            </div>
+            <div class="no-print" style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-brand" onclick="window.print()">Print Receipt</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    `;
+}
+
+function openExtendModal(rentalId, vehicleId, currentEnd) {
+    const v = state.vehicles.find(item => item.id === vehicleId);
+    const rate = v ? Number(v.price) : 2000;
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+        <div class="modal-sheet">
+            <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">Extend Trip — ${rentalId}</h2>
+            <p style="color:var(--muted); font-size:0.84rem; margin-bottom:1rem;">Current End Date: <span class="mono">${currentEnd}</span> • Rate: <span class="mono">${rate} BDT/day</span></p>
+            <form onsubmit="submitExtend(event, '${rentalId}', '${currentEnd}', ${rate})">
+                <div class="field"><label>New End Date</label><input type="date" id="extEnd" min="${currentEnd}" required onchange="calcExtra('${currentEnd}', ${rate})"></div>
+                <div class="fare-slip">
+                    <div class="fare-row"><span>Extra Days</span><span class="mono" id="extDays">0</span></div>
+                    <div class="fare-total"><span>Additional Charge</span><span class="mono" id="extCost">0 BDT</span></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="btn btn-brand">Confirm Extension</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+function calcExtra(currentEnd, rate) {
+    const oldD = new Date(currentEnd);
+    const newD = new Date(document.getElementById('extEnd').value);
+    let days = 0;
+    if (!isNaN(oldD) && !isNaN(newD) && newD > oldD) {
+        days = Math.floor((newD - oldD) / 86400000);
+    }
+    document.getElementById('extDays').textContent = `${days}`;
+    document.getElementById('extCost').textContent = `${(days * rate).toLocaleString()} BDT`;
+    return { days, cost: days * rate };
+}
+
+async function submitExtend(e, rentalId, currentEnd, rate) {
+    e.preventDefault();
+    const newEnd = document.getElementById('extEnd').value;
+    const { days, cost } = calcExtra(currentEnd, rate);
+    if (days <= 0) {
+        toast('Select a date after current end date', 'error');
+        return;
+    }
+    const res = await postForm('/api/rentals/extend', {
+        rental_id: rentalId,
+        new_end_date: newEnd,
+        extra_cost: cost
     });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
     if (res.status === 'success') {
@@ -494,10 +697,33 @@ async function submitBooking(e) {
     }
 }
 
-async function returnRental(rental_id, vehicle_id) {
-    const res = await postForm('/api/rentals/return', { rental_id, vehicle_id });
+function openReturnModal(rentalId, vehicleId) {
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+        <div class="modal-sheet">
+            <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">Return Vehicle — ${rentalId}</h2>
+            <p style="color:var(--muted); font-size:0.84rem; margin-bottom:1rem;">Add an optional condition or fuel note before returning.</p>
+            <form onsubmit="submitReturn(event, '${rentalId}', '${vehicleId}')">
+                <div class="field"><label>Return / Fuel Note (optional)</label><input type="text" id="retNote" placeholder="Full tank, clean interior"></div>
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="btn btn-brand">Complete Return</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+async function submitReturn(e, rentalId, vehicleId) {
+    e.preventDefault();
+    const note = document.getElementById('retNote').value.trim();
+    const res = await postForm('/api/rentals/return', { rental_id: rentalId, vehicle_id: vehicleId, note });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
-    if (res.status === 'success') loadUserSection();
+    if (res.status === 'success') {
+        closeModal();
+        loadUserSection();
+    }
 }
 
 async function cancelRental(rental_id, vehicle_id) {
@@ -527,12 +753,13 @@ async function loadAdminSection() {
     const root = document.getElementById('workspaceRoot');
     const aRes = await fetch('/api/admin/analytics');
     const aData = await aRes.json();
+    const gw = aData.gateway || {};
 
     const kpiHtml = `
         <div class="metrics-strip">
-            <div class="metric-box"><span>Total Revenue</span><strong class="mono" style="color:var(--ok);">${Number(aData.revenue || 0).toLocaleString()} BDT</strong></div>
-            <div class="metric-box"><span>Active Rentals</span><strong class="mono">${aData.active_rentals || 0}</strong></div>
-            <div class="metric-box"><span>Total Fleet</span><strong class="mono" style="color:var(--brand);">${aData.total_vehicles || 0}</strong></div>
+            <div class="metric-box"><span>${t('totalRevenue')}</span><strong class="mono" style="color:var(--ok);">${Number(aData.revenue || 0).toLocaleString()} BDT</strong></div>
+            <div class="metric-box"><span>${t('activeRentals')}</span><strong class="mono">${aData.active_rentals || 0}</strong></div>
+            <div class="metric-box"><span>${t('totalFleet')}</span><strong class="mono" style="color:var(--brand);">${aData.total_vehicles || 0}</strong></div>
         </div>
     `;
 
@@ -540,39 +767,77 @@ async function loadAdminSection() {
         root.innerHTML = kpiHtml + `
             <div class="panel">
                 <div class="panel-head">
-                    <h2>Operations & Reporting</h2>
+                    <h2>Operations, Gateway Revenue & Reporting</h2>
                     <a href="/api/export-csv" class="btn btn-ghost" style="text-decoration:none; font-size:0.82rem;" download="rentals_report.csv">Download CSV</a>
                 </div>
-                <p style="color:var(--ink-2); font-size:0.9rem;">All booking records persist in <span class="mono">rentals.txt</span> and audit events stream into <span class="mono">activity.log</span>.</p>
+                <div class="gateway-grid">
+                    <div class="gateway-card"><span>bKash</span><strong class="mono">${Number(gw.bKash || 0).toLocaleString()} BDT</strong></div>
+                    <div class="gateway-card"><span>Nagad</span><strong class="mono">${Number(gw.Nagad || 0).toLocaleString()} BDT</strong></div>
+                    <div class="gateway-card"><span>Credit Card</span><strong class="mono">${Number(gw['Credit Card'] || 0).toLocaleString()} BDT</strong></div>
+                    <div class="gateway-card"><span>Cash on Delivery</span><strong class="mono">${Number(gw['Cash on Delivery'] || 0).toLocaleString()} BDT</strong></div>
+                </div>
             </div>
         `;
     } else if (state.adminTab === 'vehicles') {
         const vRes = await fetch('/api/vehicles');
         const vData = await vRes.json();
-        const vehicles = vData.vehicles || [];
+        state.vehicles = vData.vehicles || [];
         root.innerHTML = kpiHtml + `
             <div class="panel">
-                <div class="panel-head"><h2>Fleet Inventory</h2></div>
+                <div class="panel-head"><h2>${t('vehicles')}</h2></div>
                 <table>
                     <thead><tr><th>ID</th><th>Vehicle</th><th>Category</th><th>Rate/Day</th><th>Status</th><th>Quick Action</th></tr></thead>
                     <tbody>
-                        ${vehicles.map(v => `
+                        ${state.vehicles.map(v => `
                             <tr>
                                 <td class="mono"><strong>${v.id}</strong></td>
                                 <td>${v.name}</td>
                                 <td>${v.type}</td>
-                                <td class="mono">${v.price.toFixed(0)} BDT</td>
+                                <td class="mono">${Number(v.price).toFixed(0)} BDT</td>
                                 <td>${statusTag(v.status)}</td>
-                                <td style="display:flex; gap:6px; align-items:center;">
+                                <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                     <select onchange="quickStatus('${v.id}', this.value)" style="width:auto; padding:5px 8px; font-size:0.78rem;">
                                         <option value="Available" ${v.status === 'Available' ? 'selected' : ''}>Available</option>
                                         <option value="Rented" ${v.status === 'Rented' ? 'selected' : ''}>Rented</option>
                                         <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
                                     </select>
-                                    <button type="button" class="btn btn-soft-bad" onclick="removeVehicle('${v.id}')">Delete</button>
+                                    <button type="button" class="btn btn-ghost" style="padding:6px 10px; font-size:0.78rem;" onclick="openEditVehicleModal('${v.id}')">${t('editBtn')}</button>
+                                    <button type="button" class="btn btn-soft-bad" onclick="removeVehicle('${v.id}')">${t('deleteBtn')}</button>
                                 </td>
                             </tr>
                         `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else if (state.adminTab === 'bookings') {
+        const rRes = await fetch('/api/admin/rentals');
+        const rData = await rRes.json();
+        state.allRentals = rData.rentals || [];
+        root.innerHTML = kpiHtml + `
+            <div class="panel">
+                <div class="panel-head"><h2>${t('allBookings')}</h2></div>
+                <table>
+                    <thead><tr><th>ID</th><th>Customer</th><th>Vehicle</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                        ${state.allRentals.length ? state.allRentals.map(r => `
+                            <tr>
+                                <td class="mono"><strong>${r.rental_id}</strong></td>
+                                <td>${r.user_email}</td>
+                                <td>${r.vehicle_name} <span class="mono" style="color:var(--muted);">(${r.vehicle_id})</span></td>
+                                <td class="mono">${r.start_date} → ${r.end_date}</td>
+                                <td class="mono"><strong>${Number(r.total_cost).toFixed(0)} BDT</strong></td>
+                                <td>${r.payment_method}</td>
+                                <td>${statusTag(r.status)}</td>
+                                <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-ghost" style="padding:6px 10px; font-size:0.78rem;" onclick="openReceiptById('${r.rental_id}')">${t('receipt')}</button>
+                                    ${r.status === 'Active' ? `
+                                        <button type="button" class="btn btn-soft-ok" onclick="adminForceAction('/api/rentals/return', '${r.rental_id}', '${r.vehicle_id}')">${t('returnBtn')}</button>
+                                        <button type="button" class="btn btn-soft-bad" onclick="adminForceAction('/api/rentals/cancel', '${r.rental_id}', '${r.vehicle_id}')">${t('cancelBtn')}</button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('') : '<tr><td colspan="8" style="color:var(--muted);">No bookings recorded.</td></tr>'}
                     </tbody>
                 </table>
             </div>
@@ -583,7 +848,7 @@ async function loadAdminSection() {
         const users = uData.users || [];
         root.innerHTML = kpiHtml + `
             <div class="panel">
-                <div class="panel-head"><h2>Customers</h2></div>
+                <div class="panel-head"><h2>${t('customers')}</h2></div>
                 <table>
                     <thead><tr><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
                     <tbody>
@@ -597,7 +862,7 @@ async function loadAdminSection() {
     } else if (state.adminTab === 'add') {
         root.innerHTML = kpiHtml + `
             <div class="panel" style="max-width:540px;">
-                <div class="panel-head"><h2>Add Vehicle</h2></div>
+                <div class="panel-head"><h2>${t('addVehicle')}</h2></div>
                 <form onsubmit="submitAddVehicle(event)">
                     <div class="row-2">
                         <div class="field"><label>ID</label><input type="text" id="vId" required placeholder="V105"></div>
@@ -625,13 +890,66 @@ async function loadAdminSection() {
         const logs = lData.logs || [];
         root.innerHTML = kpiHtml + `
             <div class="panel">
-                <div class="panel-head"><h2>System Audit Log</h2></div>
+                <div class="panel-head"><h2>${t('auditLog')}</h2></div>
                 <div class="log-box mono">
                     ${logs.length ? logs.map(line => `<div>${line}</div>`).join('') : '<div>No log entries yet.</div>'}
                 </div>
             </div>
         `;
     }
+}
+
+function openEditVehicleModal(id) {
+    const v = state.vehicles.find(item => item.id === id);
+    if (!v) return;
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+        <div class="modal-sheet">
+            <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:1rem;">Edit Vehicle — ${v.id}</h2>
+            <form onsubmit="submitEditVehicle(event, '${v.id}')">
+                <div class="field"><label>Model Name</label><input type="text" id="eName" value="${v.name}" required></div>
+                <div class="row-2">
+                    <div class="field"><label>Category</label><input type="text" id="eType" value="${v.type}" required></div>
+                    <div class="field"><label>Rate / Day (BDT)</label><input type="number" step="0.01" id="ePrice" value="${v.price}" required></div>
+                </div>
+                <div class="field">
+                    <label>Status</label>
+                    <select id="eStatus">
+                        <option value="Available" ${v.status === 'Available' ? 'selected' : ''}>Available</option>
+                        <option value="Rented" ${v.status === 'Rented' ? 'selected' : ''}>Rented</option>
+                        <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="btn btn-brand">Save Changes</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+async function submitEditVehicle(e, id) {
+    e.preventDefault();
+    const res = await postForm('/api/vehicles/update', {
+        id,
+        name: document.getElementById('eName').value.trim(),
+        type: document.getElementById('eType').value.trim(),
+        price: document.getElementById('ePrice').value,
+        status: document.getElementById('eStatus').value
+    });
+    toast(res.message, res.status === 'success' ? 'ok' : 'error');
+    if (res.status === 'success') {
+        closeModal();
+        loadAdminSection();
+    }
+}
+
+async function adminForceAction(url, rental_id, vehicle_id) {
+    const res = await postForm(url, { rental_id, vehicle_id, note: 'Admin action' });
+    toast(res.message, res.status === 'success' ? 'ok' : 'error');
+    if (res.status === 'success') loadAdminSection();
 }
 
 async function quickStatus(id, status) {
