@@ -77,6 +77,21 @@ const I18N = {
     }
 };
 
+const DEFAULT_PHOTOS = {
+    Sedan: [
+        'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=900&q=75',
+        'https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=900&q=75'
+    ],
+    SUV: [
+        'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=900&q=75',
+        'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=900&q=75'
+    ],
+    Bike: [
+        'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=900&q=75',
+        'https://images.unsplash.com/photo-1568772585407-9361bd9bf3a8?auto=format&fit=crop&w=900&q=75'
+    ]
+};
+
 const state = {
     theme: localStorage.getItem('dc_theme') || 'light',
     lang: localStorage.getItem('dc_lang') || 'en',
@@ -86,6 +101,8 @@ const state = {
     userTab: 'fleet',
     adminTab: 'analytics',
     vehicles: [],
+    cardSlide: {},
+    draftPhotos: [],
     userRentals: [],
     allRentals: [],
     category: 'All',
@@ -139,11 +156,12 @@ async function postForm(url, data) {
     return res.json();
 }
 
-function vehicleIcon(type) {
-    const t = (type || '').toLowerCase();
-    if (t.includes('bike')) return '🏍️';
-    if (t.includes('suv')) return '🚙';
-    return '🚘';
+function getVehiclePhotos(v) {
+    if (Array.isArray(v.images) && v.images.length > 0) return v.images;
+    const typeKey = Object.keys(DEFAULT_PHOTOS).find(
+        k => k.toLowerCase() === (v.type || '').toLowerCase()
+    );
+    return DEFAULT_PHOTOS[typeKey] || DEFAULT_PHOTOS.Sedan;
 }
 
 function statusTag(status) {
@@ -159,6 +177,75 @@ function topUtilityButtons() {
     `;
 }
 
+// --- Multi-Photo Helper Functions (Admin Upload + URLs) ---
+function compressImageFile(file, maxW = 720, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = Math.min(1, maxW / img.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.width * scale));
+                canvas.height = Math.max(1, Math.round(img.height * scale));
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = reject;
+            img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function handlePhotoFiles(inputEl, stripId) {
+    const files = Array.from(inputEl.files || []);
+    if (!files.length) return;
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        try {
+            const dataUrl = await compressImageFile(file);
+            state.draftPhotos.push(dataUrl);
+        } catch {
+            toast('Could not process one image', 'error');
+        }
+    }
+    inputEl.value = '';
+    renderDraftPhotoStrip(stripId);
+}
+
+function addPhotoUrlsFromInput(inputId, stripId) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    const parts = el.value.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    if (!parts.length) return;
+    for (const url of parts) {
+        state.draftPhotos.push(url);
+    }
+    el.value = '';
+    renderDraftPhotoStrip(stripId);
+}
+
+function removeDraftPhoto(idx, stripId) {
+    state.draftPhotos.splice(idx, 1);
+    renderDraftPhotoStrip(stripId);
+}
+
+function renderDraftPhotoStrip(stripId) {
+    const strip = document.getElementById(stripId);
+    if (!strip) return;
+    strip.innerHTML = state.draftPhotos.length
+        ? state.draftPhotos.map((src, i) => `
+            <div class="photo-thumb-wrap">
+                <img src="${src}" alt="Preview ${i + 1}">
+                <button type="button" class="photo-del-btn" onclick="removeDraftPhoto(${i}, '${stripId}')" title="Remove">×</button>
+            </div>
+        `).join('')
+        : `<span style="color:var(--muted); font-size:0.78rem;">No custom photos added yet (default category photos will be used).</span>`;
+}
+
 // --- AUTH VIEW ---
 function renderAuth() {
     const authEl = document.getElementById('authView');
@@ -171,9 +258,9 @@ function renderAuth() {
             <div class="brand-mark">DriveCore <span class="brand-badge">C-ENGINE</span></div>
             <div>
                 <h1>Reserve vehicles with zero bloat.</h1>
-                <p>Native C Winsock server paired with file-backed persistence, instant trip pricing, multi-gateway checkout, booking receipts, and live audit logs.</p>
+                <p>Native C Winsock server paired with file-backed persistence, multi-photo vehicle galleries, instant trip pricing, receipts, and live audit logs.</p>
                 <div class="spec-list">
-                    <span class="spec-item">Winsock HTTP Server</span>
+                    <span class="spec-item">Multi-Photo Fleet</span>
                     <span class="spec-item">bKash / Nagad / Card / COD</span>
                     <span class="spec-item">Printable Receipts</span>
                     <span class="spec-item">Audit Log & CSV</span>
@@ -374,6 +461,7 @@ function renderApp() {
 }
 
 function switchSection(key) {
+    if (key === 'add') state.draftPhotos = [];
     if (state.isAdmin) {
         state.adminTab = key;
         loadAdminSection();
@@ -480,6 +568,53 @@ function setCat(c) { state.category = c; loadUserSection(); }
 function setSearch(q) { state.search = q.toLowerCase(); renderFleetCards(); }
 function setSort(s) { state.sort = s; renderFleetCards(); }
 
+function stepSlide(vehicleId, delta, total, e) {
+    if (e) e.stopPropagation();
+    const cur = state.cardSlide[vehicleId] || 0;
+    state.cardSlide[vehicleId] = (cur + delta + total) % total;
+    renderFleetCards();
+}
+
+function goSlide(vehicleId, idx, e) {
+    if (e) e.stopPropagation();
+    state.cardSlide[vehicleId] = idx;
+    renderFleetCards();
+}
+
+function openPhotoGallery(vehicleId) {
+    const v = state.vehicles.find(item => item.id === vehicleId);
+    if (!v) return;
+    const photos = getVehiclePhotos(v);
+    const activeIdx = Math.min(state.cardSlide[vehicleId] || 0, photos.length - 1);
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+
+    overlay.innerHTML = `
+        <div class="modal-sheet" style="max-width:620px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div>
+                    <h2 style="font-size:1.2rem; font-weight:800;">${v.name}</h2>
+                    <span class="mono" style="font-size:0.78rem; color:var(--muted);">${v.id} • ${v.type} • ${Number(v.price).toFixed(0)} BDT/day</span>
+                </div>
+                <button type="button" class="btn btn-ghost" style="padding:6px 12px;" onclick="closeModal()">✕</button>
+            </div>
+            <div style="border-radius:12px; overflow:hidden; background:var(--surface-alt); margin-bottom:12px; max-height:360px;">
+                <img id="galleryMainImg" src="${photos[activeIdx]}" alt="${v.name}" style="width:100%; height:340px; object-fit:cover; display:block;">
+            </div>
+            <div class="photo-preview-strip" style="margin-bottom:14px;">
+                ${photos.map((src, i) => `
+                    <div class="photo-thumb-wrap" style="width:88px; height:64px; cursor:pointer; border-color:${i === activeIdx ? 'var(--brand)' : 'var(--line)'};" onclick="document.getElementById('galleryMainImg').src='${src}'">
+                        <img src="${src}" alt="Photo ${i + 1}">
+                    </div>
+                `).join('')}
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-brand" onclick="closeModal(); openCheckout('${v.id}','${v.name}',${v.price});">${t('book')} ${v.name}</button>
+            </div>
+        </div>
+    `;
+}
+
 function renderFleetCards() {
     const grid = document.getElementById('fleetCards');
     if (!grid) return;
@@ -494,23 +629,37 @@ function renderFleetCards() {
     if (state.sort === 'asc') list = [...list].sort((a, b) => a.price - b.price);
     if (state.sort === 'desc') list = [...list].sort((a, b) => b.price - a.price);
 
-    grid.innerHTML = list.length ? list.map(v => `
-        <article class="v-card">
-            <div>
-                <div class="v-head">
-                    <span class="v-code mono">${v.id}</span>
-                    ${statusTag(v.status)}
+    grid.innerHTML = list.length ? list.map(v => {
+        const photos = getVehiclePhotos(v);
+        const idx = (state.cardSlide[v.id] || 0) % photos.length;
+        return `
+            <article class="v-card">
+                <div>
+                    <div class="v-head">
+                        <span class="v-code mono">${v.id}</span>
+                        ${statusTag(v.status)}
+                    </div>
+                    <div class="v-photo-stage" onclick="openPhotoGallery('${v.id}')" title="Click to view gallery">
+                        <img src="${photos[idx]}" alt="${v.name}" loading="lazy">
+                        <span class="v-photo-count mono">${idx + 1}/${photos.length}</span>
+                        ${photos.length > 1 ? `
+                            <button type="button" class="v-arrow prev" onclick="stepSlide('${v.id}', -1, ${photos.length}, event)">‹</button>
+                            <button type="button" class="v-arrow next" onclick="stepSlide('${v.id}', 1, ${photos.length}, event)">›</button>
+                            <div class="v-dots">
+                                ${photos.map((_, d) => `<button type="button" class="v-dot ${d === idx ? 'active' : ''}" onclick="goSlide('${v.id}', ${d}, event)"></button>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="v-name">${v.name}</div>
+                    <div class="v-meta">${v.type} • Instant Pickup</div>
                 </div>
-                <div class="v-visual">${vehicleIcon(v.type)}</div>
-                <div class="v-name">${v.name}</div>
-                <div class="v-meta">${v.type} • Instant Pickup</div>
-            </div>
-            <div class="v-foot">
-                <div class="v-rate"><strong class="mono">${Number(v.price).toFixed(0)} BDT</strong> <small>/ day</small></div>
-                <button type="button" class="btn btn-brand" style="width:auto; padding:8px 14px; font-size:0.82rem;" onclick="openCheckout('${v.id}','${v.name}',${v.price})">${t('book')}</button>
-            </div>
-        </article>
-    `).join('') : `<div class="panel"><p style="color:var(--muted);">No matching available vehicles.</p></div>`;
+                <div class="v-foot">
+                    <div class="v-rate"><strong class="mono">${Number(v.price).toFixed(0)} BDT</strong> <small>/ day</small></div>
+                    <button type="button" class="btn btn-brand" style="width:auto; padding:8px 14px; font-size:0.82rem;" onclick="openCheckout('${v.id}','${v.name}',${v.price})">${t('book')}</button>
+                </div>
+            </article>
+        `;
+    }).join('') : `<div class="panel"><p style="color:var(--muted);">No matching available vehicles.</p></div>`;
 }
 
 function openCheckout(id, name, rate) {
@@ -786,26 +935,33 @@ async function loadAdminSection() {
             <div class="panel">
                 <div class="panel-head"><h2>${t('vehicles')}</h2></div>
                 <table>
-                    <thead><tr><th>ID</th><th>Vehicle</th><th>Category</th><th>Rate/Day</th><th>Status</th><th>Quick Action</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Photo</th><th>Vehicle</th><th>Category</th><th>Rate/Day</th><th>Status</th><th>Quick Action</th></tr></thead>
                     <tbody>
-                        ${state.vehicles.map(v => `
-                            <tr>
-                                <td class="mono"><strong>${v.id}</strong></td>
-                                <td>${v.name}</td>
-                                <td>${v.type}</td>
-                                <td class="mono">${Number(v.price).toFixed(0)} BDT</td>
-                                <td>${statusTag(v.status)}</td>
-                                <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                                    <select onchange="quickStatus('${v.id}', this.value)" style="width:auto; padding:5px 8px; font-size:0.78rem;">
-                                        <option value="Available" ${v.status === 'Available' ? 'selected' : ''}>Available</option>
-                                        <option value="Rented" ${v.status === 'Rented' ? 'selected' : ''}>Rented</option>
-                                        <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
-                                    </select>
-                                    <button type="button" class="btn btn-ghost" style="padding:6px 10px; font-size:0.78rem;" onclick="openEditVehicleModal('${v.id}')">${t('editBtn')}</button>
-                                    <button type="button" class="btn btn-soft-bad" onclick="removeVehicle('${v.id}')">${t('deleteBtn')}</button>
-                                </td>
-                            </tr>
-                        `).join('')}
+                        ${state.vehicles.map(v => {
+                            const photos = getVehiclePhotos(v);
+                            return `
+                                <tr>
+                                    <td class="mono"><strong>${v.id}</strong></td>
+                                    <td>
+                                        <img src="${photos[0]}" alt="${v.name}" style="width:54px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer;" onclick="openPhotoGallery('${v.id}')">
+                                        <span class="mono" style="font-size:0.72rem; color:var(--muted);">(${photos.length})</span>
+                                    </td>
+                                    <td>${v.name}</td>
+                                    <td>${v.type}</td>
+                                    <td class="mono">${Number(v.price).toFixed(0)} BDT</td>
+                                    <td>${statusTag(v.status)}</td>
+                                    <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                        <select onchange="quickStatus('${v.id}', this.value)" style="width:auto; padding:5px 8px; font-size:0.78rem;">
+                                            <option value="Available" ${v.status === 'Available' ? 'selected' : ''}>Available</option>
+                                            <option value="Rented" ${v.status === 'Rented' ? 'selected' : ''}>Rented</option>
+                                            <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
+                                        </select>
+                                        <button type="button" class="btn btn-ghost" style="padding:6px 10px; font-size:0.78rem;" onclick="openEditVehicleModal('${v.id}')">${t('editBtn')}</button>
+                                        <button type="button" class="btn btn-soft-bad" onclick="removeVehicle('${v.id}')">${t('deleteBtn')}</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -861,7 +1017,7 @@ async function loadAdminSection() {
         `;
     } else if (state.adminTab === 'add') {
         root.innerHTML = kpiHtml + `
-            <div class="panel" style="max-width:540px;">
+            <div class="panel" style="max-width:600px;">
                 <div class="panel-head"><h2>${t('addVehicle')}</h2></div>
                 <form onsubmit="submitAddVehicle(event)">
                     <div class="row-2">
@@ -880,10 +1036,23 @@ async function loadAdminSection() {
                             </select>
                         </div>
                     </div>
+                    <div class="field">
+                        <label>Upload Multiple Photos (from PC)</label>
+                        <input type="file" accept="image/*" multiple onchange="handlePhotoFiles(this, 'addPhotoStrip')">
+                    </div>
+                    <div class="field">
+                        <label>Or Add Image URLs (comma or newline separated)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="addPhotoUrl" placeholder="https://.../front.jpg, https://.../interior.jpg">
+                            <button type="button" class="btn btn-ghost" style="white-space:nowrap;" onclick="addPhotoUrlsFromInput('addPhotoUrl', 'addPhotoStrip')">+ Add URL</button>
+                        </div>
+                        <div class="photo-preview-strip" id="addPhotoStrip"></div>
+                    </div>
                     <button type="submit" class="btn btn-brand" style="width:auto;">Save Vehicle</button>
                 </form>
             </div>
         `;
+        renderDraftPhotoStrip('addPhotoStrip');
     } else if (state.adminTab === 'logs') {
         const lRes = await fetch('/api/admin/logs');
         const lData = await lRes.json();
@@ -902,6 +1071,8 @@ async function loadAdminSection() {
 function openEditVehicleModal(id) {
     const v = state.vehicles.find(item => item.id === id);
     if (!v) return;
+    state.draftPhotos = Array.isArray(v.images) && v.images.length ? [...v.images] : [...getVehiclePhotos(v)];
+
     const overlay = document.getElementById('modalOverlay');
     overlay.classList.remove('hidden');
     overlay.innerHTML = `
@@ -921,6 +1092,18 @@ function openEditVehicleModal(id) {
                         <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
                     </select>
                 </div>
+                <div class="field">
+                    <label>Upload More Photos (from PC)</label>
+                    <input type="file" accept="image/*" multiple onchange="handlePhotoFiles(this, 'editPhotoStrip')">
+                </div>
+                <div class="field">
+                    <label>Add Image URL(s)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="editPhotoUrl" placeholder="https://.../side.jpg">
+                        <button type="button" class="btn btn-ghost" style="white-space:nowrap;" onclick="addPhotoUrlsFromInput('editPhotoUrl', 'editPhotoStrip')">+ Add</button>
+                    </div>
+                    <div class="photo-preview-strip" id="editPhotoStrip"></div>
+                </div>
                 <div style="display:flex; gap:10px;">
                     <button type="submit" class="btn btn-brand">Save Changes</button>
                     <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
@@ -928,6 +1111,7 @@ function openEditVehicleModal(id) {
             </form>
         </div>
     `;
+    renderDraftPhotoStrip('editPhotoStrip');
 }
 
 async function submitEditVehicle(e, id) {
@@ -937,10 +1121,12 @@ async function submitEditVehicle(e, id) {
         name: document.getElementById('eName').value.trim(),
         type: document.getElementById('eType').value.trim(),
         price: document.getElementById('ePrice').value,
-        status: document.getElementById('eStatus').value
+        status: document.getElementById('eStatus').value,
+        images: state.draftPhotos.join('^^^')
     });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
     if (res.status === 'success') {
+        state.draftPhotos = [];
         closeModal();
         loadAdminSection();
     }
@@ -971,10 +1157,12 @@ async function submitAddVehicle(e) {
         type: document.getElementById('vType').value.trim(),
         name: document.getElementById('vName').value.trim(),
         price: document.getElementById('vPrice').value,
-        status: document.getElementById('vStatus').value
+        status: document.getElementById('vStatus').value,
+        images: state.draftPhotos.join('^^^')
     });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
     if (res.status === 'success') {
+        state.draftPhotos = [];
         state.adminTab = 'vehicles';
         loadAdminSection();
     }
