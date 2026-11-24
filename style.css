@@ -174,7 +174,6 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
 .search-sort input { width: 210px; padding: 8px 12px; font-size: 0.85rem; }
 .search-sort select { width: auto; padding: 8px 12px; font-size: 0.85rem; }
 
-/* Fleet Cards with Real Multi-Photo Stage */
 .cards-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;
 }
@@ -231,7 +230,6 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
 .v-rate strong { font-size: 1.1rem; color: var(--brand); }
 .v-rate small { color: var(--muted); font-size: 0.76rem; }
 
-/* Admin Multi-Photo Previews */
 .photo-preview-strip {
     display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
 }
