@@ -92,6 +92,9 @@ const DEFAULT_PHOTOS = {
     ]
 };
 
+const DRIVER_DAILY_RATE = 800;
+const PICKUP_LOCATIONS = ['Ashulia', 'Dhanmondi', 'Uttara', 'Gulshan', 'Airport'];
+
 const state = {
     theme: localStorage.getItem('dc_theme') || 'light',
     lang: localStorage.getItem('dc_lang') || 'en',
@@ -257,11 +260,11 @@ function renderAuth() {
             <div class="brand-mark">ChakaGo <span class="brand-badge">C-ENGINE</span></div>
             <div>
                 <h1>Reserve vehicles with zero bloat.</h1>
-                <p>Native C Winsock server paired with file-backed persistence, multi-photo vehicle galleries, instant trip pricing, receipts, and live audit logs.</p>
+                <p>Native C Winsock server paired with file-backed persistence, multi-photo galleries, driver & promo pricing, receipts, and live audit logs.</p>
                 <div class="spec-list">
                     <span class="spec-item">Multi-Photo Fleet</span>
-                    <span class="spec-item">bKash / Nagad / Card / COD</span>
-                    <span class="spec-item">Printable Receipts</span>
+                    <span class="spec-item">Self-Drive & With Driver</span>
+                    <span class="spec-item">Promo Codes</span>
                     <span class="spec-item">Audit Log & CSV</span>
                 </div>
             </div>
@@ -499,12 +502,13 @@ async function loadUserSection() {
             <div class="panel">
                 <div class="panel-head"><h2>${t('myRentals')}</h2></div>
                 <table>
-                    <thead><tr><th>ID</th><th>Vehicle</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Vehicle</th><th>Pickup & Mode</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                         ${rentals.length ? rentals.map(r => `
                             <tr>
                                 <td class="mono"><strong>${r.rental_id}</strong></td>
                                 <td>${r.vehicle_name} <span class="mono" style="color:var(--muted);">(${r.vehicle_id})</span></td>
+                                <td>${r.pickup_loc || 'Ashulia'} <span style="color:var(--muted);">• ${r.driver_mode || 'Self-Drive'}</span></td>
                                 <td class="mono">${r.start_date} → ${r.end_date}</td>
                                 <td class="mono"><strong>${Number(r.total_cost).toFixed(0)} BDT</strong></td>
                                 <td>${r.payment_method}</td>
@@ -518,7 +522,7 @@ async function loadUserSection() {
                                     ` : ''}
                                 </td>
                             </tr>
-                        `).join('') : '<tr><td colspan="7" style="color:var(--muted);">No rentals yet.</td></tr>'}
+                        `).join('') : '<tr><td colspan="8" style="color:var(--muted);">No rentals yet.</td></tr>'}
                     </tbody>
                 </table>
             </div>
@@ -662,7 +666,15 @@ function renderFleetCards() {
 }
 
 function openCheckout(id, name, rate) {
-    state.booking = { id, name, rate, days: 0, total: 0, method: 'bKash' };
+    state.booking = {
+        id, name, rate,
+        days: 0, subtotal: 0, driverFee: 0, discount: 0, total: 0,
+        driverMode: 'Self-Drive',
+        pickupLoc: 'Ashulia',
+        promoInput: '',
+        appliedPromo: 'None',
+        method: 'bKash'
+    };
     const overlay = document.getElementById('modalOverlay');
     overlay.classList.remove('hidden');
 
@@ -678,9 +690,34 @@ function openCheckout(id, name, rate) {
                     <div class="field"><label>Start Date</label><input type="date" id="bStart" required onchange="recalcFare()"></div>
                     <div class="field"><label>End Date</label><input type="date" id="bEnd" required onchange="recalcFare()"></div>
                 </div>
+                <div class="row-2">
+                    <div class="field">
+                        <label>Driver Option</label>
+                        <select id="bDriver" onchange="recalcFare()">
+                            <option value="Self-Drive">Self-Drive (Free)</option>
+                            <option value="With Driver">With Driver (+${DRIVER_DAILY_RATE} BDT/day)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Pickup Location</label>
+                        <select id="bPickup">
+                            ${PICKUP_LOCATIONS.map(loc => `<option value="${loc}">${loc}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Promo Code (Try: CHAKA10 or FIRST500)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="bPromo" placeholder="Enter promo code" oninput="state.booking.promoInput = this.value">
+                        <button type="button" class="btn btn-ghost" style="white-space:nowrap;" onclick="applyPromoCode()">Apply</button>
+                    </div>
+                    <small id="promoMsg" style="display:block; margin-top:4px; color:var(--muted); font-size:0.76rem;"></small>
+                </div>
                 <div class="fare-slip">
                     <div class="fare-row"><span>Duration</span><span class="mono" id="fDays">0 days</span></div>
-                    <div class="fare-row"><span>Daily Rate</span><span class="mono">${Number(rate).toFixed(0)} BDT</span></div>
+                    <div class="fare-row"><span>Vehicle Subtotal</span><span class="mono" id="fSub">0 BDT</span></div>
+                    <div class="fare-row"><span>Driver Charge</span><span class="mono" id="fDriver">0 BDT</span></div>
+                    <div class="fare-row"><span>Promo Discount</span><span class="mono" id="fDisc" style="color:var(--ok);">0 BDT</span></div>
                     <div class="fare-total"><span>Total Payable</span><span class="mono" id="fTotal">0 BDT</span></div>
                 </div>
                 <div class="field">
@@ -711,19 +748,66 @@ function pickMethod(m, btn) {
     btn.classList.add('active');
 }
 
+function applyPromoCode() {
+    if (!state.booking) return;
+    const code = (document.getElementById('bPromo').value || '').trim().toUpperCase();
+    const msgEl = document.getElementById('promoMsg');
+    if (code === 'CHAKA10' || code === 'FIRST500') {
+        state.booking.appliedPromo = code;
+        msgEl.style.color = 'var(--ok)';
+        msgEl.textContent = code === 'CHAKA10'
+            ? 'CHAKA10 applied: 10% discount enabled.'
+            : 'FIRST500 applied: 500 BDT flat discount enabled.';
+    } else if (code === '') {
+        state.booking.appliedPromo = 'None';
+        msgEl.style.color = 'var(--muted)';
+        msgEl.textContent = 'Promo cleared.';
+    } else {
+        state.booking.appliedPromo = 'None';
+        msgEl.style.color = 'var(--bad)';
+        msgEl.textContent = 'Invalid code. Try CHAKA10 or FIRST500.';
+    }
+    recalcFare();
+}
+
 function recalcFare() {
+    if (!state.booking) return;
     const s = new Date(document.getElementById('bStart').value);
     const e = new Date(document.getElementById('bEnd').value);
+    const driverMode = document.getElementById('bDriver').value;
+    state.booking.driverMode = driverMode;
+
+    let days = 0;
+    let subtotal = 0;
+    let driverFee = 0;
+    let discount = 0;
+    let total = 0;
+
     if (!isNaN(s) && !isNaN(e) && e >= s) {
-        const days = Math.floor((e - s) / 86400000) + 1;
-        state.booking.days = days;
-        state.booking.total = days * state.booking.rate;
-    } else {
-        state.booking.days = 0;
-        state.booking.total = 0;
+        days = Math.floor((e - s) / 86400000) + 1;
+        subtotal = days * state.booking.rate;
+        driverFee = driverMode === 'With Driver' ? days * DRIVER_DAILY_RATE : 0;
+        const gross = subtotal + driverFee;
+
+        if (state.booking.appliedPromo === 'CHAKA10') {
+            discount = Math.round(gross * 0.10);
+        } else if (state.booking.appliedPromo === 'FIRST500') {
+            discount = Math.min(500, Math.max(0, gross - 100));
+        }
+        total = Math.max(0, gross - discount);
     }
-    document.getElementById('fDays').textContent = `${state.booking.days} ${state.booking.days === 1 ? 'day' : 'days'}`;
-    document.getElementById('fTotal').textContent = `${state.booking.total.toLocaleString()} BDT`;
+
+    state.booking.days = days;
+    state.booking.subtotal = subtotal;
+    state.booking.driverFee = driverFee;
+    state.booking.discount = discount;
+    state.booking.total = total;
+
+    document.getElementById('fDays').textContent = `${days} ${days === 1 ? 'day' : 'days'}`;
+    document.getElementById('fSub').textContent = `${subtotal.toLocaleString()} BDT`;
+    document.getElementById('fDriver').textContent = `${driverFee.toLocaleString()} BDT`;
+    document.getElementById('fDisc').textContent = `-${discount.toLocaleString()} BDT`;
+    document.getElementById('fTotal').textContent = `${total.toLocaleString()} BDT`;
 }
 
 async function submitBooking(e) {
@@ -732,6 +816,9 @@ async function submitBooking(e) {
         toast('Choose valid start and end dates', 'error');
         return;
     }
+    const pickupLoc = document.getElementById('bPickup').value;
+    const driverMode = document.getElementById('bDriver').value;
+
     const payload = {
         email: state.user.email,
         vehicle_id: state.booking.id,
@@ -739,7 +826,10 @@ async function submitBooking(e) {
         start_date: document.getElementById('bStart').value,
         end_date: document.getElementById('bEnd').value,
         payment_method: state.booking.method,
-        total_cost: state.booking.total
+        total_cost: state.booking.total,
+        driver_mode: driverMode,
+        pickup_loc: pickupLoc,
+        promo_code: state.booking.appliedPromo
     };
     const res = await postForm('/api/rentals/book', payload);
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
@@ -754,6 +844,9 @@ async function submitBooking(e) {
             end_date: payload.end_date,
             total_cost: payload.total_cost,
             payment_method: payload.payment_method,
+            driver_mode: payload.driver_mode,
+            pickup_loc: payload.pickup_loc,
+            promo_code: payload.promo_code,
             status: 'Active'
         });
     }
@@ -777,6 +870,8 @@ function openReceiptModal(r) {
                 <div class="fare-row"><span>Rental ID</span><span class="mono"><strong>${r.rental_id}</strong></span></div>
                 <div class="fare-row"><span>Customer</span><span>${r.user_email || (state.user ? state.user.email : '')}</span></div>
                 <div class="fare-row"><span>Vehicle</span><span>${r.vehicle_name} (${r.vehicle_id})</span></div>
+                <div class="fare-row"><span>Pickup & Mode</span><span>${r.pickup_loc || 'Ashulia'} • ${r.driver_mode || 'Self-Drive'}</span></div>
+                <div class="fare-row"><span>Promo Code</span><span class="mono">${r.promo_code && r.promo_code !== 'None' ? r.promo_code : 'None'}</span></div>
                 <div class="fare-row"><span>Dates</span><span class="mono">${r.start_date} → ${r.end_date}</span></div>
                 <div class="fare-row"><span>Gateway</span><span>${r.payment_method}</span></div>
                 <div class="fare-total"><span>Total Paid</span><span class="mono">${Number(r.total_cost).toLocaleString()} BDT</span></div>
@@ -923,6 +1018,8 @@ async function loadAdminSection() {
                     <div class="gateway-card"><span>Nagad</span><strong class="mono">${Number(gw.Nagad || 0).toLocaleString()} BDT</strong></div>
                     <div class="gateway-card"><span>Credit Card</span><strong class="mono">${Number(gw['Credit Card'] || 0).toLocaleString()} BDT</strong></div>
                     <div class="gateway-card"><span>Cash on Delivery</span><strong class="mono">${Number(gw['Cash on Delivery'] || 0).toLocaleString()} BDT</strong></div>
+                    <div class="gateway-card"><span>With Driver Trips</span><strong class="mono">${Number(aData.with_driver_trips || 0)}</strong></div>
+                    <div class="gateway-card"><span>Promo Trips</span><strong class="mono">${Number(aData.promo_applied_trips || 0)}</strong></div>
                 </div>
             </div>
         `;
@@ -973,13 +1070,14 @@ async function loadAdminSection() {
             <div class="panel">
                 <div class="panel-head"><h2>${t('allBookings')}</h2></div>
                 <table>
-                    <thead><tr><th>ID</th><th>Customer</th><th>Vehicle</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Customer</th><th>Vehicle</th><th>Pickup & Mode</th><th>Period</th><th>Total</th><th>Gateway</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                         ${state.allRentals.length ? state.allRentals.map(r => `
                             <tr>
                                 <td class="mono"><strong>${r.rental_id}</strong></td>
                                 <td>${r.user_email}</td>
                                 <td>${r.vehicle_name} <span class="mono" style="color:var(--muted);">(${r.vehicle_id})</span></td>
+                                <td>${r.pickup_loc || 'Ashulia'} <span style="color:var(--muted);">• ${r.driver_mode || 'Self-Drive'}</span></td>
                                 <td class="mono">${r.start_date} → ${r.end_date}</td>
                                 <td class="mono"><strong>${Number(r.total_cost).toFixed(0)} BDT</strong></td>
                                 <td>${r.payment_method}</td>
@@ -992,7 +1090,7 @@ async function loadAdminSection() {
                                     ` : ''}
                                 </td>
                             </tr>
-                        `).join('') : '<tr><td colspan="8" style="color:var(--muted);">No bookings recorded.</td></tr>'}
+                        `).join('') : '<tr><td colspan="9" style="color:var(--muted);">No bookings recorded.</td></tr>'}
                     </tbody>
                 </table>
             </div>
