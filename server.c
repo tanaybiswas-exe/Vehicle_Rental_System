@@ -13,6 +13,7 @@
 #define VEHICLES_FILE "vehicles.txt"
 #define VEHICLE_IMAGES_FILE "vehicle_images.txt"
 #define RENTALS_FILE "rentals.txt"
+#define REVIEWS_FILE "reviews.txt"
 #define ACTIVITY_LOG "activity.log"
 #define CONFIG_FILE "config.txt"
 
@@ -35,6 +36,9 @@ typedef struct {
     char type[50];
     double price;
     char status[30];
+    char seats[20];
+    char transmission[20];
+    char fuel[20];
 } Vehicle;
 
 typedef struct {
@@ -132,6 +136,16 @@ void sanitize_json_str(const char *src, char *dst, size_t dst_len) {
     dst[j] = '\0';
 }
 
+void sanitize_pipe_str(const char *src, char *dst, size_t dst_len) {
+    size_t j = 0;
+    for (size_t i = 0; src && src[i] && j + 1 < dst_len; i++) {
+        char c = src[i];
+        if (c == '|' || c == '\n' || c == '\r') dst[j++] = ' ';
+        else dst[j++] = c;
+    }
+    dst[j] = '\0';
+}
+
 void url_decode(char *dst, const char *src) {
     char a, b;
     while (*src) {
@@ -204,6 +218,43 @@ int parse_ymd_to_days(const char *ymd) {
     if (m < 1 || m > 12 || d < 1 || d > 31) return -1;
     if (m <= 2) { y -= 1; m += 12; }
     return 365 * y + y / 4 - y / 100 + y / 400 + (153 * m - 457) / 5 + d - 306;
+}
+
+void default_specs_for_type(const char *type, char *seats, char *trans, char *fuel) {
+    if (strcasecmp ? 0 : (strcmp(type, "SUV") == 0)) {
+        strcpy(seats, "7 Seats");
+        strcpy(trans, "Auto");
+        strcpy(fuel, "Octane");
+    } else if (strcmp(type, "Bike") == 0) {
+        strcpy(seats, "2 Seats");
+        strcpy(trans, "Manual");
+        strcpy(fuel, "Octane");
+    } else {
+        strcpy(seats, "4 Seats");
+        strcpy(trans, "Auto");
+        strcpy(fuel, "Octane");
+    }
+}
+
+int parse_vehicle_line(const char *line, Vehicle *v) {
+    memset(v, 0, sizeof(Vehicle));
+    strcpy(v->seats, "4 Seats");
+    strcpy(v->transmission, "Auto");
+    strcpy(v->fuel, "Octane");
+
+    int fields = sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]|%19[^|]|%19[^|]|%19[^|]",
+                        v->id, v->name, v->type, &v->price, v->status,
+                        v->seats, v->transmission, v->fuel);
+    if (fields >= 5 && fields < 8) {
+        default_specs_for_type(v->type, v->seats, v->transmission, v->fuel);
+    }
+    return fields >= 5;
+}
+
+void write_vehicle_line(FILE *fp, const Vehicle *v) {
+    fprintf(fp, "%s|%s|%s|%.2f|%s|%s|%s|%s\n",
+            v->id, v->name, v->type, v->price, v->status,
+            v->seats, v->transmission, v->fuel);
 }
 
 int parse_rental_line(const char *line, Rental *r) {
@@ -362,9 +413,113 @@ void build_images_json_array(const char *vehicle_id, char *out_json, size_t max_
     fclose(fp);
 }
 
+// --- Trip Ratings & Reviews (`reviews.txt`) ---
+
+void build_reviews_summary(const char *vehicle_id, double *avg_rating, int *review_count, char *reviews_json, size_t max_len) {
+    *avg_rating = 0.0;
+    *review_count = 0;
+    snprintf(reviews_json, max_len, "[");
+    int first = 1;
+    double sum = 0.0;
+
+    FILE *fp = fopen(REVIEWS_FILE, "r");
+    if (!fp) {
+        strcat(reviews_json, "]");
+        return;
+    }
+
+    char line[1024];
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\r\n")] = 0;
+        if (strlen(line) == 0) continue;
+        char r_id[30], v_id[20], u_email[100], comment[500];
+        int rating = 0;
+        // Format: rental_id|vehicle_id|user_email|rating|comment
+        char *p1 = strchr(line, '|'); if (!p1) continue;
+        *p1 = '\0'; strncpy(r_id, line, sizeof(r_id) - 1); r_id[sizeof(r_id) - 1] = '\0';
+
+        char *p2 = strchr(p1 + 1, '|'); if (!p2) continue;
+        *p2 = '\0'; strncpy(v_id, p1 + 1, sizeof(v_id) - 1); v_id[sizeof(v_id) - 1] = '\0';
+
+        char *p3 = strchr(p2 + 1, '|'); if (!p3) continue;
+        *p3 = '\0'; strncpy(u_email, p2 + 1, sizeof(u_email) - 1); u_email[sizeof(u_email) - 1] = '\0';
+
+        char *p4 = strchr(p3 + 1, '|'); if (!p4) continue;
+        *p4 = '\0'; rating = atoi(p3 + 1);
+
+        strncpy(comment, p4 + 1, sizeof(comment) - 1);
+        comment[sizeof(comment) - 1] = '\0';
+
+        if (strcmp(v_id, vehicle_id) == 0 && rating >= 1 && rating <= 5) {
+            sum += rating;
+            (*review_count)++;
+
+            char e_user[140], e_comm[700], item[950];
+            sanitize_json_str(u_email, e_user, sizeof(e_user));
+            sanitize_json_str(comment, e_comm, sizeof(e_comm));
+            if (!first && strlen(reviews_json) + strlen(item) + 4 < max_len) {
+                strcat(reviews_json, ",");
+            }
+            if (strlen(reviews_json) + strlen(item) + 4 < max_len) {
+                snprintf(item, sizeof(item),
+                         "{\"rental_id\":\"%s\",\"user_email\":\"%s\",\"rating\":%d,\"comment\":\"%s\"}",
+                         r_id, e_user, rating, e_comm);
+                strcat(reviews_json, item);
+                first = 0;
+            }
+        }
+    }
+    fclose(fp);
+    if (strlen(reviews_json) + 2 < max_len) strcat(reviews_json, "]");
+    if (*review_count > 0) *avg_rating = sum / (*review_count);
+}
+
+void submit_review(const char *body, char *response_json) {
+    char rental_id[30], vehicle_id[20], email[100], rating_str[16], raw_comment[500], clean_comment[500];
+    get_param(body, "rental_id", rental_id, sizeof(rental_id));
+    get_param(body, "vehicle_id", vehicle_id, sizeof(vehicle_id));
+    get_param(body, "email", email, sizeof(email));
+    get_param(body, "rating", rating_str, sizeof(rating_str));
+    get_param(body, "comment", raw_comment, sizeof(raw_comment));
+
+    int rating = atoi(rating_str);
+    if (strlen(rental_id) == 0 || strlen(vehicle_id) == 0 || rating < 1 || rating > 5) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Please select a rating between 1 and 5 stars.\"}");
+        return;
+    }
+
+    sanitize_pipe_str(raw_comment, clean_comment, sizeof(clean_comment));
+
+    FILE *fp = fopen(REVIEWS_FILE, "r");
+    if (fp) {
+        char line[1024];
+        while (fgets(line, sizeof(line), fp)) {
+            char existing_rid[30];
+            if (sscanf(line, "%29[^|]|", existing_rid) == 1 && strcmp(existing_rid, rental_id) == 0) {
+                fclose(fp);
+                strcpy(response_json, "{\"status\":\"error\",\"message\":\"You have already reviewed this trip.\"}");
+                return;
+            }
+        }
+        fclose(fp);
+    }
+
+    fp = fopen(REVIEWS_FILE, "a");
+    if (!fp) {
+        strcpy(response_json, "{\"status\":\"error\",\"message\":\"Could not save review.\"}");
+        return;
+    }
+    fprintf(fp, "%s|%s|%s|%d|%s\n", rental_id, vehicle_id, email, rating, clean_comment);
+    fclose(fp);
+
+    log_activity("TRIP_REVIEW_ADDED", rental_id);
+    strcpy(response_json, "{\"status\":\"success\",\"message\":\"Thank you! Your rating & review has been published.\"}");
+}
+
 void init_files() {
     FILE *fp = fopen(USERS_FILE, "a"); if (fp) fclose(fp);
     fp = fopen(RENTALS_FILE, "a"); if (fp) fclose(fp);
+    fp = fopen(REVIEWS_FILE, "a"); if (fp) fclose(fp);
     fp = fopen(ACTIVITY_LOG, "a"); if (fp) fclose(fp);
     fp = fopen(VEHICLE_IMAGES_FILE, "a"); if (fp) fclose(fp);
 
@@ -372,10 +527,10 @@ void init_files() {
     if (!fp) {
         fp = fopen(VEHICLES_FILE, "w");
         if (fp) {
-            fprintf(fp, "V101|Toyota Corolla|Sedan|3500.00|Available\n");
-            fprintf(fp, "V102|Honda Civic|Sedan|4200.00|Available\n");
-            fprintf(fp, "V103|Mitsubishi Pajero|SUV|7500.00|Available\n");
-            fprintf(fp, "V104|Yamaha R15|Bike|1500.00|Available\n");
+            fprintf(fp, "V101|Toyota Corolla|Sedan|3500.00|Available|4 Seats|Auto|Octane\n");
+            fprintf(fp, "V102|Honda Civic|Sedan|4200.00|Available|4 Seats|Auto|Octane\n");
+            fprintf(fp, "V103|Mitsubishi Pajero|SUV|7500.00|Available|7 Seats|Auto|Diesel\n");
+            fprintf(fp, "V104|Yamaha R15|Bike|1500.00|Available|2 Seats|Manual|Octane\n");
             fclose(fp);
         }
     } else {
@@ -391,17 +546,16 @@ void set_vehicle_status(const char *vehicle_id, const char *new_status) {
         if (temp_v) fclose(temp_v);
         return;
     }
-    char line[300];
+    char line[350];
     Vehicle v;
     while (fgets(line, sizeof(line), vf)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+        if (parse_vehicle_line(line, &v)) {
             if (strcmp(v.id, vehicle_id) == 0) {
                 strncpy(v.status, new_status, sizeof(v.status) - 1);
                 v.status[sizeof(v.status) - 1] = '\0';
             }
-            fprintf(temp_v, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
+            write_vehicle_line(temp_v, &v);
         }
     }
     fclose(vf);
@@ -681,21 +835,33 @@ void get_all_vehicles(char *response_json) {
         return;
     }
     strcpy(response_json, "{\"status\":\"success\",\"vehicles\":[");
-    char line[300];
+    char line[350];
     char *item = (char *)malloc(131072);
     char *imgs_json = (char *)malloc(131072);
+    char *revs_json = (char *)malloc(8192);
     Vehicle v;
     int first = 1;
 
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+        if (parse_vehicle_line(line, &v)) {
             if (imgs_json) build_images_json_array(v.id, imgs_json, 131072);
-            if (item && imgs_json) {
+            double avg_r = 0.0;
+            int rev_cnt = 0;
+            if (revs_json) build_reviews_summary(v.id, &avg_r, &rev_cnt, revs_json, 8192);
+
+            char e_seats[40], e_trans[40], e_fuel[40];
+            sanitize_json_str(v.seats, e_seats, sizeof(e_seats));
+            sanitize_json_str(v.transmission, e_trans, sizeof(e_trans));
+            sanitize_json_str(v.fuel, e_fuel, sizeof(e_fuel));
+
+            if (item && imgs_json && revs_json) {
                 snprintf(item, 131072,
-                         "{\"id\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"price\":%.2f,\"status\":\"%s\",\"images\":%s}",
-                         v.id, v.name, v.type, v.price, v.status, imgs_json);
+                         "{\"id\":\"%s\",\"name\":\"%s\",\"type\":\"%s\",\"price\":%.2f,\"status\":\"%s\","
+                         "\"seats\":\"%s\",\"transmission\":\"%s\",\"fuel\":\"%s\","
+                         "\"avg_rating\":%.1f,\"review_count\":%d,\"reviews\":%s,\"images\":%s}",
+                         v.id, v.name, v.type, v.price, v.status,
+                         e_seats, e_trans, e_fuel, avg_r, rev_cnt, revs_json, imgs_json);
                 if (!first && strlen(response_json) + strlen(item) + 4 < BUFFER_SIZE) {
                     strcat(response_json, ",");
                 }
@@ -708,6 +874,7 @@ void get_all_vehicles(char *response_json) {
     }
     free(item);
     free(imgs_json);
+    free(revs_json);
     strcat(response_json, "]}");
     fclose(fp);
 }
@@ -715,7 +882,7 @@ void get_all_vehicles(char *response_json) {
 int vehicle_id_exists(const char *id) {
     FILE *fp = fopen(VEHICLES_FILE, "r");
     if (!fp) return 0;
-    char line[300];
+    char line[350];
     Vehicle v;
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%19[^|]|", v.id) == 1) {
@@ -734,7 +901,16 @@ void add_vehicle(const char *body, char *response_json) {
     get_param(body, "type", v.type, sizeof(v.type));
     get_param(body, "price", price_str, sizeof(price_str));
     get_param(body, "status", v.status, sizeof(v.status));
+    get_param(body, "seats", v.seats, sizeof(v.seats));
+    get_param(body, "transmission", v.transmission, sizeof(v.transmission));
+    get_param(body, "fuel", v.fuel, sizeof(v.fuel));
     v.price = atof(price_str);
+
+    char def_s[20], def_t[20], def_f[20];
+    default_specs_for_type(v.type, def_s, def_t, def_f);
+    if (strlen(v.seats) == 0) strcpy(v.seats, def_s);
+    if (strlen(v.transmission) == 0) strcpy(v.transmission, def_t);
+    if (strlen(v.fuel) == 0) strcpy(v.fuel, def_f);
 
     if (vehicle_id_exists(v.id)) {
         strcpy(response_json, "{\"status\":\"error\",\"message\":\"Vehicle ID already exists.\"}");
@@ -746,7 +922,7 @@ void add_vehicle(const char *body, char *response_json) {
         strcpy(response_json, "{\"status\":\"error\",\"message\":\"File error.\"}");
         return;
     }
-    fprintf(fp, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
+    write_vehicle_line(fp, &v);
     fclose(fp);
 
     char *images = (char *)malloc(131072);
@@ -761,12 +937,15 @@ void add_vehicle(const char *body, char *response_json) {
 }
 
 void update_vehicle(const char *body, char *response_json) {
-    char id[20], name[100], type[50], price_str[30], status[30];
+    char id[20], name[100], type[50], price_str[30], status[30], seats[20], trans[20], fuel[20];
     get_param(body, "id", id, sizeof(id));
     get_param(body, "name", name, sizeof(name));
     get_param(body, "type", type, sizeof(type));
     get_param(body, "price", price_str, sizeof(price_str));
     get_param(body, "status", status, sizeof(status));
+    get_param(body, "seats", seats, sizeof(seats));
+    get_param(body, "transmission", trans, sizeof(trans));
+    get_param(body, "fuel", fuel, sizeof(fuel));
 
     FILE *fp = fopen(VEHICLES_FILE, "r");
     FILE *temp = fopen("temp_vehicles.txt", "w");
@@ -777,21 +956,23 @@ void update_vehicle(const char *body, char *response_json) {
         return;
     }
 
-    char line[300];
+    char line[350];
     Vehicle v;
     int found = 0;
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+        if (parse_vehicle_line(line, &v)) {
             if (strcmp(v.id, id) == 0) {
                 found = 1;
                 if (strlen(name) > 0) strcpy(v.name, name);
                 if (strlen(type) > 0) strcpy(v.type, type);
                 if (strlen(price_str) > 0 && atof(price_str) > 0) v.price = atof(price_str);
                 if (strlen(status) > 0) strcpy(v.status, status);
+                if (strlen(seats) > 0) strcpy(v.seats, seats);
+                if (strlen(trans) > 0) strcpy(v.transmission, trans);
+                if (strlen(fuel) > 0) strcpy(v.fuel, fuel);
             }
-            fprintf(temp, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
+            write_vehicle_line(temp, &v);
         }
     }
     fclose(fp);
@@ -826,18 +1007,17 @@ void delete_vehicle(const char *body, char *response_json) {
         return;
     }
 
-    char line[300];
+    char line[350];
     Vehicle v;
     int found = 0;
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+        if (parse_vehicle_line(line, &v)) {
             if (strcmp(v.id, id) == 0) {
                 found = 1;
                 continue;
             }
-            fprintf(temp, "%s|%s|%s|%.2f|%s\n", v.id, v.name, v.type, v.price, v.status);
+            write_vehicle_line(temp, &v);
         }
     }
     fclose(fp);
@@ -897,14 +1077,13 @@ void book_vehicle(const char *body, char *response_json) {
         return;
     }
 
-    char line[300];
+    char line[350];
     Vehicle v;
     int v_found = 0;
     char v_name[100] = "";
 
     while (fgets(line, sizeof(line), fp)) {
-        if (sscanf(line, "%19[^|]|%99[^|]|%49[^|]|%lf|%29[^|]",
-                   v.id, v.name, v.type, &v.price, v.status) == 5) {
+        if (parse_vehicle_line(line, &v)) {
             if (strcmp(v.id, vehicle_id) == 0) {
                 if (strcmp(v.status, "Available") != 0) {
                     fclose(fp);
@@ -1133,7 +1312,7 @@ void get_analytics(char *response_json) {
 
     FILE *vf = fopen(VEHICLES_FILE, "r");
     if (vf) {
-        char line[300];
+        char line[350];
         Vehicle v;
         while (fgets(line, sizeof(line), vf)) {
             if (sscanf(line, "%19[^|]|", v.id) == 1) total_vehicles++;
@@ -1381,6 +1560,9 @@ int main() {
             } else if (strncmp(buffer, "POST /api/rentals/cancel", 24) == 0) {
                 update_rental_status(body, "Cancelled", "BOOKING_CANCELLED",
                                      "Booking cancelled & vehicle released to fleet.", json_out);
+                send_response(client_fd, "application/json", json_out);
+            } else if (strncmp(buffer, "POST /api/reviews/add", 21) == 0) {
+                submit_review(body, json_out);
                 send_response(client_fd, "application/json", json_out);
             } else if (strncmp(buffer, "GET /api/admin/rentals", 22) == 0) {
                 write_rentals_json(NULL, json_out);
