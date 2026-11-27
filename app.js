@@ -34,6 +34,7 @@ const I18N = {
         extend: 'Extend',
         returnBtn: 'Return',
         cancelBtn: 'Cancel',
+        rateBtn: 'Rate Trip',
         editBtn: 'Edit',
         deleteBtn: 'Delete'
     },
@@ -72,6 +73,7 @@ const I18N = {
         extend: 'বাড়ান',
         returnBtn: 'ফেরত দিন',
         cancelBtn: 'বাতিল',
+        rateBtn: 'রেটিং দিন',
         editBtn: 'এডিট',
         deleteBtn: 'ডিলিট'
     }
@@ -260,11 +262,11 @@ function renderAuth() {
             <div class="brand-mark">ChakaGo <span class="brand-badge">C-ENGINE</span></div>
             <div>
                 <h1>Reserve vehicles with zero bloat.</h1>
-                <p>Native C Winsock server paired with file-backed persistence, multi-photo galleries, driver & promo pricing, receipts, and live audit logs.</p>
+                <p>Native C Winsock server paired with file-backed persistence, multi-photo galleries, driver & promo pricing, ratings, receipts, and live audit logs.</p>
                 <div class="spec-list">
                     <span class="spec-item">Multi-Photo Fleet</span>
                     <span class="spec-item">Self-Drive & With Driver</span>
-                    <span class="spec-item">Promo Codes</span>
+                    <span class="spec-item">Promo Codes & Ratings</span>
                     <span class="spec-item">Audit Log & CSV</span>
                 </div>
             </div>
@@ -520,6 +522,9 @@ async function loadUserSection() {
                                         <button type="button" class="btn btn-soft-ok" onclick="openReturnModal('${r.rental_id}','${r.vehicle_id}')">${t('returnBtn')}</button>
                                         <button type="button" class="btn btn-soft-bad" onclick="cancelRental('${r.rental_id}','${r.vehicle_id}')">${t('cancelBtn')}</button>
                                     ` : ''}
+                                    ${r.status === 'Returned' ? `
+                                        <button type="button" class="btn btn-soft-warn" onclick="openReviewModal('${r.rental_id}','${r.vehicle_id}','${r.vehicle_name}')">${t('rateBtn')}</button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `).join('') : '<tr><td colspan="8" style="color:var(--muted);">No rentals yet.</td></tr>'}
@@ -589,6 +594,7 @@ function openPhotoGallery(vehicleId) {
     if (!v) return;
     const photos = getVehiclePhotos(v);
     const activeIdx = Math.min(state.cardSlide[vehicleId] || 0, photos.length - 1);
+    const reviews = Array.isArray(v.reviews) ? v.reviews : [];
     const overlay = document.getElementById('modalOverlay');
     overlay.classList.remove('hidden');
 
@@ -597,7 +603,7 @@ function openPhotoGallery(vehicleId) {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <div>
                     <h2 style="font-size:1.2rem; font-weight:800;">${v.name}</h2>
-                    <span class="mono" style="font-size:0.78rem; color:var(--muted);">${v.id} • ${v.type} • ${Number(v.price).toFixed(0)} BDT/day</span>
+                    <span class="mono" style="font-size:0.78rem; color:var(--muted);">${v.id} • ${v.type} • ${v.seats || '4 Seats'} • ${v.transmission || 'Auto'} • ${v.fuel || 'Octane'}</span>
                 </div>
                 <button type="button" class="btn btn-ghost" style="padding:6px 12px;" onclick="closeModal()">✕</button>
             </div>
@@ -611,9 +617,23 @@ function openPhotoGallery(vehicleId) {
                     </div>
                 `).join('')}
             </div>
-            <div style="display:flex; gap:10px;">
-                <button type="button" class="btn btn-brand" onclick="closeModal(); openCheckout('${v.id}','${v.name}',${v.price});">${t('book')} ${v.name}</button>
+            <div style="margin-bottom:14px;">
+                <div style="font-size:0.84rem; font-weight:800; margin-bottom:8px;">Customer Reviews (${reviews.length})</div>
+                ${reviews.length ? reviews.slice().reverse().map(rv => `
+                    <div class="review-item">
+                        <div class="review-head">
+                            <strong>${rv.user_email}</strong>
+                            <span class="review-stars">${'★'.repeat(rv.rating)}${'☆'.repeat(5 - rv.rating)} (${rv.rating}/5)</span>
+                        </div>
+                        <div style="color:var(--ink-2);">${rv.comment || 'Smooth trip.'}</div>
+                    </div>
+                `).join('') : `<div style="color:var(--muted); font-size:0.8rem;">No reviews yet for this vehicle.</div>`}
             </div>
+            ${v.status === 'Available' ? `
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-brand" onclick="closeModal(); openCheckout('${v.id}','${v.name}',${v.price});">${t('book')} ${v.name}</button>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -635,14 +655,19 @@ function renderFleetCards() {
     grid.innerHTML = list.length ? list.map(v => {
         const photos = getVehiclePhotos(v);
         const idx = (state.cardSlide[v.id] || 0) % photos.length;
+        const revCount = Number(v.review_count || 0);
+        const avgR = Number(v.avg_rating || 0).toFixed(1);
         return `
             <article class="v-card">
                 <div>
                     <div class="v-head">
                         <span class="v-code mono">${v.id}</span>
-                        ${statusTag(v.status)}
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            ${revCount > 0 ? `<span class="v-rating-pill mono">★ ${avgR} (${revCount})</span>` : ''}
+                            ${statusTag(v.status)}
+                        </div>
                     </div>
-                    <div class="v-photo-stage" onclick="openPhotoGallery('${v.id}')" title="Click to view gallery">
+                    <div class="v-photo-stage" onclick="openPhotoGallery('${v.id}')" title="Click to view gallery & reviews">
                         <img src="${photos[idx]}" alt="${v.name}" loading="lazy">
                         <span class="v-photo-count mono">${idx + 1}/${photos.length}</span>
                         ${photos.length > 1 ? `
@@ -655,6 +680,11 @@ function renderFleetCards() {
                     </div>
                     <div class="v-name">${v.name}</div>
                     <div class="v-meta">${v.type} • Instant Pickup</div>
+                    <div class="v-specs">
+                        <span class="spec-chip">${v.seats || '4 Seats'}</span>
+                        <span class="spec-chip">${v.transmission || 'Auto'}</span>
+                        <span class="spec-chip">${v.fuel || 'Octane'}</span>
+                    </div>
                 </div>
                 <div class="v-foot">
                     <div class="v-rate"><strong class="mono">${Number(v.price).toFixed(0)} BDT</strong> <small>/ day</small></div>
@@ -884,6 +914,53 @@ function openReceiptModal(r) {
     `;
 }
 
+function openReviewModal(rentalId, vehicleId, vehicleName) {
+    const overlay = document.getElementById('modalOverlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+        <div class="modal-sheet">
+            <h2 style="font-size:1.15rem; font-weight:800; margin-bottom:6px;">Rate Your Trip — ${vehicleName}</h2>
+            <p style="color:var(--muted); font-size:0.84rem; margin-bottom:1rem;">Booking ID: <span class="mono">${rentalId}</span></p>
+            <form onsubmit="submitReview(event, '${rentalId}', '${vehicleId}')">
+                <div class="field">
+                    <label>Rating (1 to 5 Stars)</label>
+                    <select id="revRating" required>
+                        <option value="5">★★★★★ — 5 / 5 (Excellent)</option>
+                        <option value="4">★★★★☆ — 4 / 5 (Very Good)</option>
+                        <option value="3">★★★☆☆ — 3 / 5 (Good)</option>
+                        <option value="2">★★☆☆☆ — 2 / 5 (Fair)</option>
+                        <option value="1">★☆☆☆☆ — 1 / 5 (Poor)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Short Review</label>
+                    <textarea id="revComment" rows="3" placeholder="How was the vehicle condition, pickup, and overall experience?" required></textarea>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="btn btn-brand">Submit Review</button>
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Close</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+async function submitReview(e, rentalId, vehicleId) {
+    e.preventDefault();
+    const res = await postForm('/api/reviews/add', {
+        rental_id: rentalId,
+        vehicle_id: vehicleId,
+        email: state.user.email,
+        rating: document.getElementById('revRating').value,
+        comment: document.getElementById('revComment').value.trim()
+    });
+    toast(res.message, res.status === 'success' ? 'ok' : 'error');
+    if (res.status === 'success') {
+        closeModal();
+        loadUserSection();
+    }
+}
+
 function openExtendModal(rentalId, vehicleId, currentEnd) {
     const v = state.vehicles.find(item => item.id === vehicleId);
     const rate = v ? Number(v.price) : 2000;
@@ -1031,7 +1108,7 @@ async function loadAdminSection() {
             <div class="panel">
                 <div class="panel-head"><h2>${t('vehicles')}</h2></div>
                 <table>
-                    <thead><tr><th>ID</th><th>Photo</th><th>Vehicle</th><th>Category</th><th>Rate/Day</th><th>Status</th><th>Quick Action</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Photo</th><th>Vehicle</th><th>Specs</th><th>Rate/Day</th><th>Status</th><th>Quick Action</th></tr></thead>
                     <tbody>
                         ${state.vehicles.map(v => {
                             const photos = getVehiclePhotos(v);
@@ -1042,8 +1119,8 @@ async function loadAdminSection() {
                                         <img src="${photos[0]}" alt="${v.name}" style="width:54px; height:38px; object-fit:cover; border-radius:6px; cursor:pointer;" onclick="openPhotoGallery('${v.id}')">
                                         <span class="mono" style="font-size:0.72rem; color:var(--muted);">(${photos.length})</span>
                                     </td>
-                                    <td>${v.name}</td>
-                                    <td>${v.type}</td>
+                                    <td>${v.name} <span style="color:var(--muted);">• ${v.type}</span></td>
+                                    <td><span class="spec-chip">${v.seats || '4 Seats'}</span> <span class="spec-chip">${v.transmission || 'Auto'}</span> <span class="spec-chip">${v.fuel || 'Octane'}</span></td>
                                     <td class="mono">${Number(v.price).toFixed(0)} BDT</td>
                                     <td>${statusTag(v.status)}</td>
                                     <td style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -1133,6 +1210,24 @@ async function loadAdminSection() {
                             </select>
                         </div>
                     </div>
+                    <div class="row-3">
+                        <div class="field"><label>Seats</label><input type="text" id="vSeats" value="4 Seats" placeholder="4 Seats"></div>
+                        <div class="field">
+                            <label>Transmission</label>
+                            <select id="vTrans">
+                                <option value="Auto">Auto</option>
+                                <option value="Manual">Manual</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Fuel</label>
+                            <select id="vFuel">
+                                <option value="Octane">Octane</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Diesel">Diesel</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="field">
                         <label>Upload Multiple Photos (from PC)</label>
                         <input type="file" accept="image/*" multiple onchange="handlePhotoFiles(this, 'addPhotoStrip')">
@@ -1189,6 +1284,24 @@ function openEditVehicleModal(id) {
                         <option value="Under Maintenance" ${v.status === 'Under Maintenance' ? 'selected' : ''}>Under Maintenance</option>
                     </select>
                 </div>
+                <div class="row-3">
+                    <div class="field"><label>Seats</label><input type="text" id="eSeats" value="${v.seats || '4 Seats'}"></div>
+                    <div class="field">
+                        <label>Transmission</label>
+                        <select id="eTrans">
+                            <option value="Auto" ${(v.transmission || 'Auto') === 'Auto' ? 'selected' : ''}>Auto</option>
+                            <option value="Manual" ${v.transmission === 'Manual' ? 'selected' : ''}>Manual</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Fuel</label>
+                        <select id="eFuel">
+                            <option value="Octane" ${(v.fuel || 'Octane') === 'Octane' ? 'selected' : ''}>Octane</option>
+                            <option value="Hybrid" ${v.fuel === 'Hybrid' ? 'selected' : ''}>Hybrid</option>
+                            <option value="Diesel" ${v.fuel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="field">
                     <label>Upload More Photos (from PC)</label>
                     <input type="file" accept="image/*" multiple onchange="handlePhotoFiles(this, 'editPhotoStrip')">
@@ -1219,6 +1332,9 @@ async function submitEditVehicle(e, id) {
         type: document.getElementById('eType').value.trim(),
         price: document.getElementById('ePrice').value,
         status: document.getElementById('eStatus').value,
+        seats: document.getElementById('eSeats').value.trim(),
+        transmission: document.getElementById('eTrans').value,
+        fuel: document.getElementById('eFuel').value,
         images: state.draftPhotos.join('^^^')
     });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
@@ -1255,6 +1371,9 @@ async function submitAddVehicle(e) {
         name: document.getElementById('vName').value.trim(),
         price: document.getElementById('vPrice').value,
         status: document.getElementById('vStatus').value,
+        seats: document.getElementById('vSeats').value.trim(),
+        transmission: document.getElementById('vTrans').value,
+        fuel: document.getElementById('vFuel').value,
         images: state.draftPhotos.join('^^^')
     });
     toast(res.message, res.status === 'success' ? 'ok' : 'error');
