@@ -106,6 +106,7 @@ body {
 .tab-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .field { margin-bottom: 1rem; }
 .field label { display: block; font-size: 0.76rem; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
 input, select, textarea {
@@ -181,8 +182,12 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 1.25rem; box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between;
 }
-.v-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.v-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 6px; }
 .v-code { font-size: 0.75rem; font-weight: 700; color: var(--muted); background: var(--surface-alt); padding: 3px 9px; border-radius: 6px; }
+.v-rating-pill {
+    font-size: 0.75rem; font-weight: 800; color: var(--warn);
+    background: var(--warn-bg); padding: 3px 9px; border-radius: 999px;
+}
 .v-photo-stage {
     position: relative;
     height: 165px;
@@ -222,7 +227,13 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
 }
 
 .v-name { font-size: 1.1rem; font-weight: 800; }
-.v-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 1rem; }
+.v-meta { font-size: 0.82rem; color: var(--muted); margin-bottom: 0.6rem; }
+.v-specs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
+.spec-chip {
+    font-size: 0.72rem; font-weight: 700; color: var(--ink-2);
+    background: var(--surface-alt); border: 1px solid var(--line);
+    padding: 2px 8px; border-radius: 6px;
+}
 .v-foot {
     display: flex; justify-content: space-between; align-items: center;
     padding-top: 0.9rem; border-top: 1px solid var(--line-soft);
@@ -243,6 +254,13 @@ input:disabled { opacity: 0.65; cursor: not-allowed; }
     border-radius: 999px; border: none; background: rgba(185,28,28,0.9); color: #fff;
     font-size: 0.7rem; font-weight: 800; cursor: pointer; line-height: 1;
 }
+
+.review-item {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; margin-bottom: 8px; font-size: 0.82rem;
+}
+.review-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.review-stars { color: var(--warn); font-weight: 800; }
 
 .panel {
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
